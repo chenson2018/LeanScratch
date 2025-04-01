@@ -144,7 +144,7 @@ inductive Conv : Term → Term → Prop
 def ConvReflTrans := Relation.ReflTransGen Conv
 
 notation:39 t " =β " t' => Conv t t'
-notation:39 t " ↠β " t'  => ConvReflTrans t t'
+notation:39 t " ↠β " t' => ConvReflTrans t t'
 
 example : {{{ 0 }}} ↠β {{{ 0 }}} := by
   simp
