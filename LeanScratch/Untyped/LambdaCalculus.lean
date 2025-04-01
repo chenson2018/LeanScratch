@@ -61,10 +61,6 @@ def Term.unshiftₙ (c d : ℕ) : Term → Term
 @[simp]
 def Term.unshift := Term.unshiftₙ 0
 
--- Pierce exercise 6.2.2
-example : {{{ (λ.λ. 1 (0 2)) }}}.shift 2 = {{{ λ. λ. 1 (0 4) }}} := by simp [shift, shiftₙ]
-example : {{{ λ. 0 1 (λ. 0 1 2) }}}.shift 2 = {{{ λ. 0 3 (λ. 0 1 4) }}} := by simp [shift, shiftₙ]
-
 def Term.sub (t : Term) (j : ℕ) (s : Term) : Term := 
   match t with
   | var k     => if k = j then s else var k
@@ -72,12 +68,6 @@ def Term.sub (t : Term) (j : ℕ) (s : Term) : Term :=
   | app t₁ t₂ => app (sub t₁ j s) (sub t₂ j s)
 
 notation:39 M "[" i ":=" N "]" => Term.sub M i N
-
--- Pierce exercise 6.2.5
-example : sub {{{ (0 (λ.λ.2)) }}} 0 {{{ 1 }}} = {{{ 1 (λ. λ. 3) }}}:= by simp [sub, shift, shiftₙ]
-example : sub {{{ (0 (λ.1)) }}} 0 {{{ 1 (λ.2) }}} = {{{ (1 (λ.2)) (λ. (2 (λ.3))) }}} := by simp [sub, shift, shiftₙ] 
-example : sub {{{ (λ. 0 2) }}} 0  {{{1}}} = {{{ λ. 0 2 }}} := by simp [sub, shift, shiftₙ]
-example : sub {{{ (λ. 1 0) }}} 0 {{{1}}} = {{{ λ. 2 0 }}} := by simp [sub, shift, shiftₙ]
 
 -- definition 6.1.2
 inductive free : Term → ℕ → Prop where
@@ -134,31 +124,28 @@ theorem free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shiftₙ 
 
 theorem free_shift (t : Term) (n d: ℕ) (h : free t n) : free (t.shift d) (n+d) := free_shiftₙ t n 0 d h
 
-inductive Conv : Term → Term → Prop
-| app_r {M N Z} : Conv M N → Conv (app M Z) (app N Z)
-| app_l {M N Z} : Conv M N → Conv (app Z M) (app Z N)
-| beta  {M N}   : Conv {{{ (λ . ~M) ~N }}} (M [0 := N.shift 1] |>.unshift 1)
-| eta   {M N}   : Conv M N → Conv (abs M) (abs N)
+-- TODO: I think this might work?
+-- I have seen Agda examples where they carry it with the Term type, but I prefer it seperate...
+lemma substitution_comm 
+  {n : ℕ} 
+  {M N L : Term} 
+  (M_free : free M (n+2))
+  (N_free : free N (n+1))
+  (L_free : free L n)
+  : (M [0 := N] [0 := L]) = (M [1 := L] [0 := N [0 := L]])
+  := by sorry
+
+inductive Reduce : Term → Term → Prop
+| app_r {M N Z} : Reduce M N → Reduce (app M Z) (app N Z)
+| app_l {M N Z} : Reduce M N → Reduce (app Z M) (app Z N)
+| beta  {M N}   : Reduce {{{ (λ . ~M) ~N }}} (M [0 := N.shift 1] |>.unshift 1)
+| eta   {M N}   : Reduce M N → Reduce (abs M) (abs N)
 
 @[simp]
-def ConvReflTrans := Relation.ReflTransGen Conv
+def ReduceReflTrans := Relation.ReflTransGen Reduce
 
-notation:39 t " =β " t' => Conv t t'
-notation:39 t " ↠β " t' => ConvReflTrans t t'
-
-example : {{{ 0 }}} ↠β {{{ 0 }}} := by
-  simp
-  apply Relation.ReflTransGen.refl
-
-example : {{{ (λ.0) 1 }}} ↠β {{{ 1 }}} := by
-  simp
-  apply Relation.ReflTransGen.single
-  apply Conv.beta
-
-example : {{{ (λ.1 0 2) (λ.0) }}} ↠β {{{ 0 (λ.0) 1 }}} := by
-  simp
-  apply Relation.ReflTransGen.single
-  apply Conv.beta
+notation:39 t " =β " t' => Reduce          t t'
+notation:39 t " ↠β " t' => ReduceReflTrans t t'
 
 -- follows PLFA (sorta...)
 mutual
@@ -175,7 +162,7 @@ inductive Progress (M : Term) : Prop
 | step {N} : (M =β N) → Progress M
 | done     : Normalized M → Progress M
 
-open Progress Normalized Neutral Conv in
+open Progress Normalized Neutral Reduce in
 theorem progress (M : Term) : Progress M := by
   induction M
   case var x => exact done (of_neutral (of_var x))
@@ -205,6 +192,69 @@ theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
     right
     exists M'
 
-abbrev Diamond {α : Type} (rel : α → α → Prop) := ∀ (M N N' : α), rel M N → rel M N' → (∃ M', rel N M' ∧ rel N' M')
+@[simp]
+abbrev Diamond {α : Type} (rel : α → α → Prop) := ∀ {M N N' : α}, rel M N → rel M N' → (∃ M', rel N M' ∧ rel N' M')
 
-theorem church_rosser : Diamond (· ↠β ·) := sorry
+inductive ReduceP : Term → Term → Prop
+| var (x : ℕ) : ReduceP (var x) (var x)
+| eta {N N'} : ReduceP N N' →  ReduceP (abs N) (abs N')
+| app {L L' M M'} : ReduceP L L' → ReduceP M M' → ReduceP {{{ ~L ~M }}} {{{ ~L' ~M' }}}
+| beta {N N' M M'} : ReduceP N N' → ReduceP M M' → ReduceP {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
+
+inductive ReduceP_Chain : Term → Term → Prop
+| refl {M} : ReduceP_Chain M M
+| seq  {L M N : Term} : ReduceP L M → ReduceP_Chain M N → ReduceP_Chain L N
+
+notation:39 t " ⇉  " t' => ReduceP       t t'
+notation:39 t " ⇉* " t' => ReduceP_Chain t t'
+
+theorem ConvP_refl : Reflexive (· ⇉ ·) := by
+  simp [Reflexive]
+  intros t
+  induction t
+  case var x => exact ReduceP.var x
+  case abs body ih => exact ReduceP.eta ih
+  case app l r l_ih r_ih => exact ReduceP.app l_ih r_ih
+
+-- TODO: this is a sketch from PLFA, might change to the two induction proof
+-- TODO: fix precedence
+-- TODO: more consistent names
+theorem strip {M N N' : Term} : (M ⇉ N) → (M ⇉* N') → (∃ L : Term, (N ⇉* L) ∧ (N' ⇉ L)) := sorry
+
+theorem ConvReflTrans_to_ReduceP {M N} : (M ↠β N) → (M ⇉* N) := sorry
+
+theorem ConvP_to_ConvReflTrans {M N} : (M ⇉ N) → (M ↠β N) := sorry
+
+theorem ReduceP_to_ConvReflTrans {M N} : (M ⇉* N) → (M ↠β N) := sorry
+
+theorem parallel_chain_diamond : Diamond (· ⇉* ·) := by sorry
+
+theorem confluence : Diamond (· ↠β ·) := by
+  simp
+  intros L M₁ M₂ L_M₁ L_M₂
+  have ⟨N, ⟨M₁_rp_N, M₂_rp_N⟩⟩ := parallel_chain_diamond (ConvReflTrans_to_ReduceP L_M₁) (ConvReflTrans_to_ReduceP L_M₂)
+  exists N
+  refine And.intro (ReduceP_to_ConvReflTrans M₁_rp_N) (ReduceP_to_ConvReflTrans M₂_rp_N)
+
+-- some example for sanity checks
+-- Pierce exercise 6.2.2
+example : {{{ (λ.λ. 1 (0 2)) }}}.shift 2 = {{{ λ. λ. 1 (0 4) }}} := by simp [shift, shiftₙ]
+example : {{{ λ. 0 1 (λ. 0 1 2) }}}.shift 2 = {{{ λ. 0 3 (λ. 0 1 4) }}} := by simp [shift, shiftₙ]
+
+-- Pierce exercise 6.2.5
+example : sub {{{ (0 (λ.λ.2)) }}} 0 {{{ 1 }}} = {{{ 1 (λ. λ. 3) }}}:= by simp [sub, shift, shiftₙ]
+example : sub {{{ (0 (λ.1)) }}} 0 {{{ 1 (λ.2) }}} = {{{ (1 (λ.2)) (λ. (2 (λ.3))) }}} := by simp [sub, shift, shiftₙ] 
+example : sub {{{ (λ. 0 2) }}} 0  {{{1}}} = {{{ λ. 0 2 }}} := by simp [sub, shift, shiftₙ]
+example : sub {{{ (λ. 1 0) }}} 0 {{{1}}} = {{{ λ. 2 0 }}} := by simp [sub, shift, shiftₙ]
+
+example : {{{ 0 }}} ↠β {{{ 0 }}} := by simp [Relation.ReflTransGen.refl]
+
+example : {{{ (λ.0) 1 }}} ↠β {{{ 1 }}} := by
+  simp
+  apply Relation.ReflTransGen.single
+  apply Reduce.beta
+
+example : {{{ (λ.1 0 2) (λ.0) }}} ↠β {{{ 0 (λ.0) 1 }}} := by
+  simp
+  apply Relation.ReflTransGen.single
+  apply Reduce.beta
