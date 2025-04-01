@@ -180,27 +180,23 @@ theorem progress (M : Term) : Progress M := by
   induction M
   case var x => exact done (of_neutral (of_var x))
   case abs N prog_N => 
-      cases prog_N with
-      | step N_N' => exact step (eta N_N')
-      | done norm_N => exact done (of_abs norm_N)
+      exact match prog_N with
+      | step N_N' => step (eta N_N')
+      | done norm_N => done (of_abs norm_N)
   case app l r prog_l prog_r => 
       cases l with
       | var x =>
-          cases prog_r with
-          | step r_r' => exact step (app_l r_r')
-          | done norm_r => exact done (of_neutral (app_norm (of_var x) norm_r))
+          exact match prog_r with
+          | step r_r' => step (app_l r_r')
+          | done norm_r => done (of_neutral (app_norm (of_var x) norm_r))
       | abs N => 
           apply step
           apply beta
       | app ll lr => 
-          cases prog_l with
-          | step L_r => exact step (app_r L_r)
-          | done norm_L =>
-              cases prog_r with
-              | step r_r' => exact step (app_l r_r')
-              | done norm_r =>
-                  cases norm_L with
-                  | of_neutral neut_L => exact done (of_neutral (app_norm neut_L norm_r))
+          exact match prog_l, prog_r with
+          | step L_r, _ => step (app_r L_r)
+          | done (of_neutral neut_L), done norm_r => done (of_neutral (app_norm neut_L norm_r))
+          | _, step r_r' => step (app_l r_r')
 
 theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
   induction (progress M)
