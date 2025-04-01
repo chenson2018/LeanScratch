@@ -189,9 +189,7 @@ theorem progress (M : Term) : Progress M := by
           exact match prog_r with
           | step r_r' => step (app_l r_r')
           | done norm_r => done (of_neutral (app_norm (of_var x) norm_r))
-      | abs N => 
-          apply step
-          apply beta
+      | abs N => exact step beta
       | app ll lr => 
           exact match prog_l, prog_r with
           | step L_r, _ => step (app_r L_r)
