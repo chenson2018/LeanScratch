@@ -13,6 +13,8 @@ and working through the proofs myself.
 ## Untyped
 
 This formalizes some results on the untyped lambda calculus, using Barendregt's
-*The Lambda Calculus, Its Syntax and Semantics* and Pierce's *Types and
-Programming Languages* as references. The goal here is to formalize its
-categorical semantics.
+*The Lambda Calculus, Its Syntax and Semantics*, Pierce's *Types and Programming
+Languages*, *[Software
+Foundations](https://softwarefoundations.cis.upenn.edu/)*, and *[Programming
+Language Foundations in Agda](https://plfa.github.io/)* as references. The goal
+here is to formalize its categorical semantics.

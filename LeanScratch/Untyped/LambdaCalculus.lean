@@ -138,24 +138,79 @@ inductive Conv : Term → Term → Prop
 | app_r {M N Z} : Conv M N → Conv (app M Z) (app N Z)
 | app_l {M N Z} : Conv M N → Conv (app Z M) (app Z N)
 | beta  {M N}   : Conv {{{ (λ . ~M) ~N }}} (M [0 := N.shift 1] |>.unshift 1)
--- TODO: shifting here, and do I want eta??
--- | eta   {M N}   : Conv M N → Conv (abs M) (abs N)
+| eta   {M N}   : Conv M N → Conv (abs M) (abs N)
 
 @[simp]
-def ConvEquiv := Relation.EqvGen Conv
+def ConvReflTrans := Relation.ReflTransGen Conv
 
-notation:39 t " =β " t' => ConvEquiv t t'
+notation:39 t " =β " t' => Conv t t'
+notation:39 t " ↠β " t'  => ConvReflTrans t t'
 
-example : {{{ 0 }}} =β {{{ 0 }}} := by
+example : {{{ 0 }}} ↠β {{{ 0 }}} := by
   simp
-  apply Relation.EqvGen.refl
+  apply Relation.ReflTransGen.refl
 
-example : {{{ (λ.0) 1 }}} =β {{{ 1 }}} := by
+example : {{{ (λ.0) 1 }}} ↠β {{{ 1 }}} := by
   simp
-  apply Relation.EqvGen.rel
+  apply Relation.ReflTransGen.single
   apply Conv.beta
 
-example : {{{ (λ.1 0 2) (λ.0) }}} =β {{{ 0 (λ.0) 1 }}} := by
+example : {{{ (λ.1 0 2) (λ.0) }}} ↠β {{{ 0 (λ.0) 1 }}} := by
   simp
-  apply Relation.EqvGen.rel
+  apply Relation.ReflTransGen.single
   apply Conv.beta
+
+-- follows PLFA (sorta...)
+mutual
+  inductive Neutral : Term → Prop
+  | of_var (x : ℕ) : Neutral (var x)
+  | app_norm {L M : Term} : Neutral L → Normalized M → Neutral {{{ ~L ~M }}}
+
+  inductive Normalized : Term → Prop
+  | of_neutral {M} : Neutral M → Normalized M
+  | of_abs {N} : Normalized N → Normalized {{{ λ . ~N }}}
+end
+
+inductive Progress (M : Term) : Prop
+| step {N} : (M =β N) → Progress M
+| done     : Normalized M → Progress M
+
+open Progress Normalized Neutral Conv in
+theorem progress (M : Term) : Progress M := by
+  induction M
+  case var x => exact done (of_neutral (of_var x))
+  case abs N prog_N => 
+      cases prog_N with
+      | step N_N' => exact step (eta N_N')
+      | done norm_N => exact done (of_abs norm_N)
+  case app l r prog_l prog_r => 
+      cases l with
+      | var x =>
+          cases prog_r with
+          | step r_r' => exact step (app_l r_r')
+          | done norm_r => exact done (of_neutral (app_norm (of_var x) norm_r))
+      | abs N => 
+          apply step
+          apply beta
+      | app ll lr => 
+          cases prog_l with
+          | step L_r => exact step (app_r L_r)
+          | done norm_L =>
+              cases prog_r with
+              | step r_r' => exact step (app_l r_r')
+              | done norm_r =>
+                  cases norm_L with
+                  | of_neutral neut_L => exact done (of_neutral (app_norm neut_L norm_r))
+
+theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
+  induction (progress M)
+  case done norm =>
+    left
+    exact norm
+  case step M' M_M' =>
+    right
+    exists M'
+
+abbrev Diamond {α : Type} (rel : α → α → Prop) := ∀ (M N N' : α), rel M N → rel M N' → (∃ M', rel N M' ∧ rel N' M')
+
+theorem church_rosser : Diamond (· ↠β ·) := sorry
