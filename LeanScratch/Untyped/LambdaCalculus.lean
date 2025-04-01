@@ -31,6 +31,8 @@ syntax "(" embedded ")" : embedded
 syntax:arg embedded:arg embedded:max : embedded
 /-- A function -/
 syntax:max "λ" "."? embedded:arg : embedded
+/-- quasiquotation -/
+syntax:max "~" term:max : embedded
 
 syntax "{{{ " embedded " }}}" : term
 open Lean in
@@ -40,6 +42,7 @@ macro_rules
   | `({{{ $e1 $e2 }}}) => `(Term.app {{{ $e1 }}} {{{ $e2 }}})
   | `({{{ λ $body }}}) => `(Term.abs {{{ $body }}})
   | `({{{ λ . $body }}}) => `(Term.abs {{{ $body }}})
+  | `({{{ ~$e }}}) => pure e
 
 -- Pierce definition 6.2.1
 def Term.shiftₙ (c d : ℕ) : Term → Term
@@ -67,6 +70,8 @@ def Term.sub (t : Term) (j : ℕ) (s : Term) : Term :=
   | var k     => if k = j then s else var k
   | abs t₁    => abs $ sub t₁ (j+1) (s.shift 1)
   | app t₁ t₂ => app (sub t₁ j s) (sub t₂ j s)
+
+notation:39 M "[" i ":=" N "]" => Term.sub M i N
 
 -- Pierce exercise 6.2.5
 example : sub {{{ (0 (λ.λ.2)) }}} 0 {{{ 1 }}} = {{{ 1 (λ. λ. 3) }}}:= by simp [sub, shift, shiftₙ]
@@ -132,7 +137,7 @@ theorem free_shift (t : Term) (n d: ℕ) (h : free t n) : free (t.shift d) (n+d)
 inductive Conv : Term → Term → Prop
 | app_r {M N Z} : Conv M N → Conv (app M Z) (app N Z)
 | app_l {M N Z} : Conv M N → Conv (app Z M) (app Z N)
-| beta  {t v}   : Conv (app (abs t) v) ((t.sub 0 (v.shift 1)).unshift 1)
+| beta  {M N}   : Conv {{{ (λ . ~M) ~N }}} (M [0 := N.shift 1] |>.unshift 1)
 -- TODO: shifting here, and do I want eta??
 -- | eta   {M N}   : Conv M N → Conv (abs M) (abs N)
 
@@ -148,7 +153,7 @@ example : {{{ 0 }}} =β {{{ 0 }}} := by
 example : {{{ (λ.0) 1 }}} =β {{{ 1 }}} := by
   simp
   apply Relation.EqvGen.rel
-  · apply Conv.beta
+  apply Conv.beta
 
 example : {{{ (λ.1 0 2) (λ.0) }}} =β {{{ 0 (λ.0) 1 }}} := by
   simp
