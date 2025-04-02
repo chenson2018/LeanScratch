@@ -258,33 +258,81 @@ theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
     exact M_M'
 
 -- mixing in the PLFA approach
-inductive Step_P : Term → Term → Prop
-| var (x : ℕ) : Step_P (var x) (var x)
-| eta {N N'} : Step_P N N' →  Step_P (abs N) (abs N')
-| app {L L' M M'} : Step_P L L' → Step_P M M' → Step_P {{{ ~L ~M }}} {{{ ~L' ~M' }}}
-| beta {N N' M M'} : Step_P N N' → Step_P M M' → Step_P {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
+inductive Parallel : Term → Term → Prop
+| var (x : ℕ) : Parallel (var x) (var x)
+| abs {N N'} : Parallel N N' →  Parallel (abs N) (abs N')
+| app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel {{{ ~L ~M }}} {{{ ~L' ~M' }}}
+| beta {N N' M M'} : Parallel N N' → Parallel M M' → Parallel {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
 
 -- TODO: is this not also a closure??? check at end
-inductive Step_P_Chain : Term → Term → Prop
-| refl {M} : Step_P_Chain M M
-| seq  {L M N : Term} : Step_P L M → Step_P_Chain M N → Step_P_Chain L N
+inductive ParallelChain : Term → Term → Prop
+| refl (M) : ParallelChain M M
+| seq  {M N : Term} (L : Term) : Parallel L M → ParallelChain M N → ParallelChain L N
 
-notation:39 t " ⇉ "  t' => Step_P       t t'
-notation:39 t " ⇉* " t' => Step_P_Chain t t'
+notation:39 t " ⇉ "  t' => Parallel       t t'
+notation:39 t " ⇉* " t' => ParallelChain t t'
 
-theorem Step_P_refl : Reflexive (· ⇉ ·) := by
+theorem Parallel_refl : Reflexive (· ⇉ ·) := by
   simp [Reflexive]
   intros t
   induction t
-  case var x => exact Step_P.var x
-  case abs body ih => exact Step_P.eta ih
-  case app l r l_ih r_ih => exact Step_P.app l_ih r_ih
+  case var x => exact Parallel.var x
+  case abs body ih => exact Parallel.abs ih
+  case app l r l_ih r_ih => exact Parallel.app l_ih r_ih
 
 theorem redex_iff_chain {M N} : (M ↠β N) ↔ M ⇉* N := sorry
-theorem sub_para {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [0 := M] ⇉ N' [0 := M']) := sorry
-theorem para_to_chain {M N N'} : (M ⇉ N) → (M ⇉* N') := sorry
 
-theorem chain_diamond : Diamond (· ⇉* ·) := sorry
+theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := M] ⇉ N' [x := M']) := by
+  intros N_N' M_M'
+  induction N_N'
+  case var x' =>
+    simp [sub]
+    by_cases eq : x' = x <;> simp [eq]
+    · exact M_M'
+    · exact Parallel.var x'
+  case app _ _ _ _ _ _ s s' => exact Parallel.app s s'
+  case abs body body' bp s => sorry
+  case beta => sorry
+
+def Term.plus (t : Term) : Term :=
+  match t with
+  | var x => var x
+  | abs N => abs N.plus
+  | app (abs N) M => N.plus [0 := M.plus]
+  | app L M => app L.plus M.plus
+
+theorem para_triangle {M N} : (M ⇉ N) → (N ⇉ M.plus) := by
+  intros M_N
+  induction M_N
+  case var x =>
+    exact Parallel.var x
+  case abs _ _ _ ρ =>
+    exact Parallel.abs ρ 
+  case beta => sorry
+  case app => sorry
+
+theorem para_diamond : Diamond (· ⇉ · ) := by
+  simp [Diamond]
+  intros M N N' p1 p2
+  exact ⟨M.plus, ⟨para_triangle p1, para_triangle p2⟩⟩
+
+-- TOTO: having trouble with termination here...
+theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= sorry
+
+-- the shadowing here is annoying, did my best to dfollow the PLFA names
+theorem chain_diamond : Diamond (· ⇉* ·) := by
+  simp [Diamond]
+  intros L M₂ M₁ L_M₂
+  revert M₁
+  induction L_M₂
+  case refl N =>
+    intros M₁ L_M₁
+    exact ⟨M₁, ⟨L_M₁, ParallelChain.refl M₁⟩⟩
+  case seq L M₁ M₁' L_M₁_s M₁_M₁' ih =>
+    intros M₂ L_M₁_c
+    have ⟨N,  ⟨M₁_N_c, M₂_N_p⟩⟩ := strip L_M₁_s L_M₁_c
+    have ⟨N', ⟨M₁'_N', N_N'⟩⟩ := ih M₁_N_c
+    exact ⟨N', ⟨M₁'_N', ParallelChain.seq M₂ M₂_N_p N_N'⟩⟩
 
 theorem confluence : Diamond (· ↠β ·) := by
   simp only [Diamond]
