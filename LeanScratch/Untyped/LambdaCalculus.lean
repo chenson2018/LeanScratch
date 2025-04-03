@@ -318,34 +318,48 @@ theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
   case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
+-- much thanks to https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
+theorem para_shift {c d : ℕ} {M M'} : (M ⇉ M') → (M.shiftₙ c d ⇉ M'.shiftₙ c d) := sorry
+theorem para_unshift {c d : ℕ} {M M'} : (M ⇉ M') → (M.unshiftₙ c d ⇉ M'.unshiftₙ c d) := sorry
+
 theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := M] ⇉ N' [x := M']) := by
   intros N_N' M_M'
-  induction N_N'
-  case var x' =>
-    simp [sub]
-    by_cases eq : x' = x <;> simp [eq]
-    · exact M_M'
-    · exact Parallel.var x'
-  case app _ _ _ _ _ _ s s' => exact Parallel.app s s'
-  case abs body body' bp s => sorry
-  case beta => sorry
+  match N_N' with
+  | Parallel.abs r1 => exact Parallel.abs (sub_para r1 (para_shift M_M'))
+  | Parallel.var x =>
+      simp [sub]
+      rename_i x'
+      by_cases eq : x = x' <;> simp [eq]
+      · exact M_M'
+      · rfl
+  | Parallel.app l r =>
+      apply Parallel.app
+      apply sub_para l
+      exact M_M'
+      apply sub_para
+      exact r
+      exact M_M'
+  | Parallel.beta _ _ => sorry
 
 def Term.plus (t : Term) : Term :=
   match t with
   | var x => var x
   | abs N => abs N.plus
-  | app (abs N) M => N.plus [0 := M.plus]
+  | app (abs N) M => (N.plus [0 := M.plus.shift 1]) |>.unshift 1
   | app L M => app L.plus M.plus
 
-theorem para_triangle {M N} : (M ⇉ N) → (N ⇉ M.plus) := by
-  intros M_N
-  induction M_N
-  case var x =>
-    exact Parallel.var x
-  case abs _ _ _ ρ =>
-    exact Parallel.abs ρ 
-  case beta => sorry
-  case app => sorry
+theorem para_triangle {M N} (para : M ⇉ N) : (N ⇉ M.plus) := 
+  match para with
+  | Parallel.var x => Parallel.var x
+  | Parallel.abs ρ => Parallel.abs (para_triangle ρ)
+  | Parallel.beta p1 p2 => by
+      simp [plus]
+      apply para_unshift
+      -- TODO: this is going to be a pain....
+      sorry
+  | @Parallel.app (Term.abs _) _ _ _ (Parallel.abs p1) p2 => Parallel.beta (para_triangle p2) (para_triangle p1)
+  | @Parallel.app (var _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
+  | @Parallel.app (app _ _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
 
 theorem para_diamond : Diamond (· ⇉ · ) := by
   simp [Diamond]
