@@ -142,14 +142,12 @@ inductive Step_R (R : Term → Term → Prop) : Term → Term → Prop
 | ξᵣ     {M N Z} : Step_R R M N → Step_R R (app M Z) (app N Z)
 | ξ      {M N}   : Step_R R M N → Step_R R (abs M)   (abs N) 
 
-@[simp]
-def Reduction_R (R : Term → Term → Prop) := Relation.ReflTransGen (Step_R R)
+notation:39 t " →" R:arg t' => Step_R                        R    t t'
+notation:39 t " ↠" R:arg t' => Relation.ReflTransGen (Step_R R)   t t'
 
+-- leaving this one for notation purposes...
 @[simp]
 def Equality_R  (R : Term → Term → Prop) := Relation.EqvGen (Step_R R)
-
-notation:39 t " →" R:arg t' => Step_R      R t t'
-notation:39 t " ↠" R:arg t' => Reduction_R R t t'
 notation:39 t " =" R:arg t' => Equality_R  R t t'
 
 -- we can say some things generally without setting a notion of reduction
@@ -161,7 +159,7 @@ theorem sub_reduction (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N'
     simp [sub]
     by_cases eq : x' = 0 <;> simp [eq]
     · exact h
-    · apply Relation.ReflTransGen.refl
+    · rfl
   case abs body ih =>
     sorry    
   case app l r ih_l ih_r =>
@@ -171,7 +169,7 @@ theorem sub_reduction (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N'
 abbrev Diamond {α} (R : α → α → Prop) := ∀ {A B C : α}, R A B → R A C → (∃ D, R B D ∧ R C D)
 
 @[simp]
-abbrev Church_Rosser (R : Term → Term → Prop) := Diamond (Reduction_R R)
+abbrev Church_Rosser (R : Term → Term → Prop) := Diamond (· ↠R · )
 
 -- a couple of general lemmas
 theorem diamond_ReflTrans {α} (R : α → α → Prop) (diamond : Diamond R) : Diamond (Relation.ReflTransGen R) := sorry
@@ -184,9 +182,7 @@ theorem equality_descendant
   : ∃ Z : Term, ((M ↠R Z) ∧ (N ↠R Z))
   := by
   induction eq
-  case refl x =>
-    exists x
-    split_ands <;> exact Relation.ReflTransGen.refl
+  case refl x => exists x
   case symm x y x_eq_y ih =>
     have ⟨Z, ⟨l, r⟩⟩ := ih
     exact ⟨Z, ⟨r, l⟩⟩
@@ -203,7 +199,7 @@ theorem equality_descendant
     and_intros
     · apply Relation.ReflTransGen.single
       exact x_y
-    · apply Relation.ReflTransGen.refl
+    · rfl
 
 -- now on to β-reduction specifically
 inductive β : Term → Term → Prop
@@ -246,7 +242,7 @@ theorem progress (M : Term) : Progress M := by
            | _, step r_r' => step (ξₗ r_r')
 
 -- equivalent to the way it's stated in Software Foundations
-theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
+theorem progress' (M : Term) : Normalized M ∨ (∃ M', M →β M') := by
   induction (progress M)
   case done norm =>
     left
@@ -254,8 +250,6 @@ theorem progress' (M : Term) : Normalized M ∨ (∃ M', M =β M') := by
   case step M' M_M' =>
     right
     exists M'
-    apply Relation.EqvGen.rel
-    exact M_M'
 
 -- mixing in the PLFA approach
 inductive Parallel : Term → Term → Prop
@@ -267,10 +261,9 @@ inductive Parallel : Term → Term → Prop
 notation:39 t " ⇉ "  t' => Parallel       t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
 
-theorem Parallel_refl : Reflexive (· ⇉ ·) := by
-  simp [Reflexive]
-  intros t
-  induction t
+@[refl]
+theorem Parallel.refl (M : Term) : (M ⇉ M) := by
+  induction M
   case var x => exact Parallel.var x
   case abs body ih => exact Parallel.abs ih
   case app l r l_ih r_ih => exact Parallel.app l_ih r_ih
@@ -278,38 +271,52 @@ theorem Parallel_refl : Reflexive (· ⇉ ·) := by
 lemma step_to_para {M N} (step : M →β N) : (M ⇉ N) := by
   induction step 
   case' reduce => rename_i r; cases r
-  all_goals apply_rules [Parallel.app, Parallel.abs, Parallel.beta, Parallel_refl, step_to_para] 
+  all_goals apply_rules [Parallel.app, Parallel.abs, Parallel.beta, Parallel.refl, step_to_para] 
 
 theorem app_l_cong {L L' R} : (L ↠β L') → (app L R ↠β app L' R) := by
   intros redex
   induction' redex
-  case refl => exact Relation.ReflTransGen.refl
+  case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξᵣ r)
 
 theorem app_r_cong {R R' L} : (R ↠β R') → (app L R ↠β app L R') := by
   intros redex
   induction' redex
-  case refl => exact Relation.ReflTransGen.refl
+  case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξₗ r)
 
 theorem abs_cong {N N'} : ( N ↠β N') → (N.abs ↠β N'.abs) := by
   intros redex
   induction' redex
-  case refl => exact Relation.ReflTransGen.refl
+  case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
 
-lemma para_to_redex {M N} : (M ⇉ N) → (M ↠β N) := by
-  intros para
-  induction para
-  case var x => exact Relation.ReflTransGen.refl
-  case abs body body' body_para ih => exact abs_cong ih
-  case beta => sorry
-  case app => sorry
+-- TODO: I bet I can get calc to work here???
+lemma para_to_redex {M N} (para : M ⇉ N) : (M ↠β N) := by
+  match M, para with
+  | Term.var _, Parallel.var _ => rfl
+  | Term.abs _, Parallel.abs _ => 
+      apply abs_cong
+      apply para_to_redex
+      assumption
+  | Term.app L R, Parallel.app p₁ p₂ => 
+      rename_i L' R'
+      calc
+        (L.app R ) ↠β (L'.app R ) := app_l_cong (para_to_redex p₁)
+        _          ↠β (L'.app R') := app_r_cong (para_to_redex p₂)
+        _          ↠β (L'.app R') := by rfl
+  | Term.app (Term.abs N) M, Parallel.beta p₁ p₂ =>
+      rename_i _ _ M' N'
+      calc
+        (N.abs.app M) ↠β (N'.abs.app M)  := app_l_cong (abs_cong (para_to_redex p₂))
+        _             ↠β (N'.abs.app M') := app_r_cong (para_to_redex (p₁))
+        _             ↠β (unshift 1 (N'[0:=shift 1 M'])) := by
+          apply Relation.ReflTransGen.single
+          apply Step_R.reduce
+          apply β.reduce
 
 theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
-  refine Iff.intro ?redex_to_chain ?chain_to_redex <;> intros h <;> induction' h
-  case redex_to_chain.refl => exact Relation.ReflTransGen.refl
-  case chain_to_redex.refl => exact Relation.ReflTransGen.refl
+  refine Iff.intro ?redex_to_chain ?chain_to_redex <;> intros h <;> induction' h <;> try rfl
   case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
@@ -371,16 +378,14 @@ example : sub {{{ (0 (λ.1)) }}} 0 {{{ 1 (λ.2) }}} = {{{ (1 (λ.2)) (λ. (2 (λ
 example : sub {{{ (λ. 0 2) }}} 0  {{{1}}} = {{{ λ. 0 2 }}} := by simp [sub, shift, shiftₙ]
 example : sub {{{ (λ. 1 0) }}} 0 {{{1}}} = {{{ λ. 2 0 }}} := by simp [sub, shift, shiftₙ]
 
-example : {{{ 0 }}} ↠β {{{ 0 }}} := by simp [Relation.ReflTransGen.refl]
+example : {{{ 0 }}} ↠β {{{ 0 }}} := by rfl
 
 example : {{{ (λ.0) 1 }}} ↠β {{{ 1 }}} := by
-  simp
   apply Relation.ReflTransGen.single
   apply Step_R.reduce
   apply β.reduce
 
 example : {{{ (λ.1 0 2) (λ.0) }}} ↠β {{{ 0 (λ.0) 1 }}} := by
-  simp
   apply Relation.ReflTransGen.single
   apply Step_R.reduce
   apply β.reduce
