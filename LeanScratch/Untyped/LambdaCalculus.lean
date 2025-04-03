@@ -258,7 +258,7 @@ inductive Parallel : Term → Term → Prop
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel {{{ ~L ~M }}} {{{ ~L' ~M' }}}
 | beta {N N' M M'} : Parallel N N' → Parallel M M' → Parallel {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
 
-notation:39 t " ⇉ "  t' => Parallel       t t'
+notation:39 t " ⇉ "  t' =>                       Parallel t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
 
 @[refl]
