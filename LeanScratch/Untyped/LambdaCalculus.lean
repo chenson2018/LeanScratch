@@ -264,13 +264,8 @@ inductive Parallel : Term → Term → Prop
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel {{{ ~L ~M }}} {{{ ~L' ~M' }}}
 | beta {N N' M M'} : Parallel N N' → Parallel M M' → Parallel {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
 
--- TODO: is this not also a closure??? check at end
-inductive ParallelChain : Term → Term → Prop
-| refl (M) : ParallelChain M M
-| tail {M N} (L) : Parallel L M → ParallelChain M N → ParallelChain L N
-
 notation:39 t " ⇉ "  t' => Parallel       t t'
-notation:39 t " ⇉* " t' => ParallelChain t t'
+notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
 
 theorem Parallel_refl : Reflexive (· ⇉ ·) := by
   simp [Reflexive]
@@ -312,17 +307,11 @@ lemma para_to_redex {M N} : (M ⇉ N) → (M ↠β N) := by
   case app => sorry
 
 theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
-  refine Iff.intro ?redex_to_chain ?chain_to_redex <;> intros h
-  case redex_to_chain => 
-    induction h
-    case refl => 
-      exact ParallelChain.refl M
-    case tail X Y MX XY ih =>
-      sorry 
-  case chain_to_redex => 
-    induction h
-    case refl M₁ => exact Relation.ReflTransGen.refl
-    case tail X Y Z ZX _ ih => exact Relation.ReflTransGen.trans (para_to_redex ZX) ih
+  refine Iff.intro ?redex_to_chain ?chain_to_redex <;> intros h <;> induction' h
+  case redex_to_chain.refl => exact Relation.ReflTransGen.refl
+  case chain_to_redex.refl => exact Relation.ReflTransGen.refl
+  case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
+  case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
 theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := M] ⇉ N' [x := M']) := by
   intros N_N' M_M'
@@ -362,19 +351,7 @@ theorem para_diamond : Diamond (· ⇉ · ) := by
 theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= sorry
 
 -- the shadowing here is annoying, did my best to dfollow the PLFA names
-theorem chain_diamond : Diamond (· ⇉* ·) := by
-  simp [Diamond]
-  intros L M₂ M₁ L_M₂
-  revert M₁
-  induction L_M₂
-  case refl N =>
-    intros M₁ L_M₁
-    exact ⟨M₁, ⟨L_M₁, ParallelChain.refl M₁⟩⟩
-  case tail L M₁ M₁' L_M₁_s M₁_M₁' ih =>
-    intros M₂ L_M₁_c
-    have ⟨N,  ⟨M₁_N_c, M₂_N_p⟩⟩ := strip L_M₁_s L_M₁_c
-    have ⟨N', ⟨M₁'_N', N_N'⟩⟩ := ih M₁_N_c
-    exact ⟨N', ⟨M₁'_N', ParallelChain.tail M₂ M₂_N_p N_N'⟩⟩
+theorem chain_diamond : Diamond (· ⇉* ·) := sorry
 
 theorem confluence : Diamond (· ↠β ·) := by
   simp only [Diamond]
