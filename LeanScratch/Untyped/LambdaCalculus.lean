@@ -267,7 +267,7 @@ inductive Parallel : Term → Term → Prop
 -- TODO: is this not also a closure??? check at end
 inductive ParallelChain : Term → Term → Prop
 | refl (M) : ParallelChain M M
-| seq  {M N : Term} (L : Term) : Parallel L M → ParallelChain M N → ParallelChain L N
+| tail {M N} (L) : Parallel L M → ParallelChain M N → ParallelChain L N
 
 notation:39 t " ⇉ "  t' => Parallel       t t'
 notation:39 t " ⇉* " t' => ParallelChain t t'
@@ -280,7 +280,55 @@ theorem Parallel_refl : Reflexive (· ⇉ ·) := by
   case abs body ih => exact Parallel.abs ih
   case app l r l_ih r_ih => exact Parallel.app l_ih r_ih
 
-theorem redex_iff_chain {M N} : (M ↠β N) ↔ M ⇉* N := sorry
+lemma step_to_para {M N} (step : M →β N) : (M ⇉ N) := 
+  match M, step with
+  | app _ _, Step_R.ξₗ _ | app _ _, Step_R.ξᵣ _ => 
+      by apply_rules [Parallel.app, Parallel_refl, step_to_para]
+  | app (Term.abs N) M, Step_R.reduce r => by
+      cases r
+      refine Parallel.beta ?_ ?_ <;> apply Parallel_refl
+  | Term.abs N, Step_R.ξ r => by
+      apply Parallel.abs
+      apply step_to_para r
+
+theorem app_l_cong {L L' R} : (L ↠β L') → (app L R ↠β app L' R) := by
+  intros redex
+  induction' redex
+  case refl => exact Relation.ReflTransGen.refl
+  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξᵣ r)
+
+theorem app_r_cong {R R' L} : (R ↠β R') → (app L R ↠β app L R') := by
+  intros redex
+  induction' redex
+  case refl => exact Relation.ReflTransGen.refl
+  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξₗ r)
+
+theorem abs_cong {N N'} : ( N ↠β N') → (N.abs ↠β N'.abs) := by
+  intros redex
+  induction' redex
+  case refl => exact Relation.ReflTransGen.refl
+  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
+
+lemma para_to_redex {M N} : (M ⇉ N) → (M ↠β N) := by
+  intros para
+  induction para
+  case var x => exact Relation.ReflTransGen.refl
+  case abs body body' body_para ih => exact abs_cong ih
+  case beta => sorry
+  case app => sorry
+
+theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
+  refine Iff.intro ?redex_to_chain ?chain_to_redex <;> intros h
+  case redex_to_chain => 
+    induction h
+    case refl => 
+      exact ParallelChain.refl M
+    case tail X Y MX XY ih =>
+      sorry 
+  case chain_to_redex => 
+    induction h
+    case refl M₁ => exact Relation.ReflTransGen.refl
+    case tail X Y Z ZX _ ih => exact Relation.ReflTransGen.trans (para_to_redex ZX) ih
 
 theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := M] ⇉ N' [x := M']) := by
   intros N_N' M_M'
@@ -328,11 +376,11 @@ theorem chain_diamond : Diamond (· ⇉* ·) := by
   case refl N =>
     intros M₁ L_M₁
     exact ⟨M₁, ⟨L_M₁, ParallelChain.refl M₁⟩⟩
-  case seq L M₁ M₁' L_M₁_s M₁_M₁' ih =>
+  case tail L M₁ M₁' L_M₁_s M₁_M₁' ih =>
     intros M₂ L_M₁_c
     have ⟨N,  ⟨M₁_N_c, M₂_N_p⟩⟩ := strip L_M₁_s L_M₁_c
     have ⟨N', ⟨M₁'_N', N_N'⟩⟩ := ih M₁_N_c
-    exact ⟨N', ⟨M₁'_N', ParallelChain.seq M₂ M₂_N_p N_N'⟩⟩
+    exact ⟨N', ⟨M₁'_N', ParallelChain.tail M₂ M₂_N_p N_N'⟩⟩
 
 theorem confluence : Diamond (· ↠β ·) := by
   simp only [Diamond]
