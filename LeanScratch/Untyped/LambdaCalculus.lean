@@ -303,7 +303,6 @@ lemma para_to_redex {M N} (para : M ⇉ N) : (M ↠β N) := by
       calc
         (L.app R ) ↠β (L'.app R ) := app_l_cong (para_to_redex p₁)
         _          ↠β (L'.app R') := app_r_cong (para_to_redex p₂)
-        _          ↠β (L'.app R') := by rfl
   | Term.app (Term.abs N) M, Parallel.beta p₁ p₂ =>
       rename_i _ _ M' N'
       calc
