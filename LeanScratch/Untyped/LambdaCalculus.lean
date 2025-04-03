@@ -369,7 +369,21 @@ theorem para_diamond : Diamond (· ⇉ · ) := by
 -- TOTO: having trouble with termination here...
 theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= sorry
 
-theorem chain_diamond : Diamond (· ⇉* ·) := sorry
+theorem chain_diamond : Diamond (· ⇉* ·) := by
+  simp [Diamond]
+  intros L M₂ M₁ L_M₂
+  revert M₁
+  -- PLFA defines the transitive closure with head instead of tail, but we can
+  -- specify to induct that way if we want, Mathlib even has it already!
+  induction L_M₂ using Relation.ReflTransGen.head_induction_on
+  case refl =>
+    intros M₁ L_M₁
+    exact ⟨M₁, ⟨L_M₁, by rfl⟩⟩
+  case head M₁ M₁' L_M₁_s M₁_M₁' ih =>
+    intros M₂ L_M₁_c
+    have ⟨N,  ⟨M₁_N_c, M₂_N_p⟩⟩ := strip L_M₁_s L_M₁_c
+    have ⟨N', ⟨M₁'_N', N_N'⟩⟩ := ih M₁_N_c
+    refine ⟨N', ⟨M₁'_N', Relation.ReflTransGen.head M₂_N_p N_N'⟩⟩    
 
 theorem confluence : Diamond (· ↠β ·) := by
   simp only [Diamond]
