@@ -291,7 +291,6 @@ theorem abs_cong {N N'} : ( N ↠β N') → (N.abs ↠β N'.abs) := by
   case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
 
--- TODO: I bet I can get calc to work here???
 lemma para_to_redex {M N} (para : M ⇉ N) : (M ↠β N) := by
   match M, para with
   | Term.var _, Parallel.var _ => rfl
@@ -357,7 +356,6 @@ theorem para_diamond : Diamond (· ⇉ · ) := by
 -- TOTO: having trouble with termination here...
 theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= sorry
 
--- the shadowing here is annoying, did my best to dfollow the PLFA names
 theorem chain_diamond : Diamond (· ⇉* ·) := sorry
 
 theorem confluence : Diamond (· ↠β ·) := by
