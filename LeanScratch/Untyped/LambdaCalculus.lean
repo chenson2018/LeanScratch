@@ -280,16 +280,10 @@ theorem Parallel_refl : Reflexive (· ⇉ ·) := by
   case abs body ih => exact Parallel.abs ih
   case app l r l_ih r_ih => exact Parallel.app l_ih r_ih
 
-lemma step_to_para {M N} (step : M →β N) : (M ⇉ N) := 
-  match M, step with
-  | app _ _, Step_R.ξₗ _ | app _ _, Step_R.ξᵣ _ => 
-      by apply_rules [Parallel.app, Parallel_refl, step_to_para]
-  | app (Term.abs N) M, Step_R.reduce r => by
-      cases r
-      refine Parallel.beta ?_ ?_ <;> apply Parallel_refl
-  | Term.abs N, Step_R.ξ r => by
-      apply Parallel.abs
-      apply step_to_para r
+lemma step_to_para {M N} (step : M →β N) : (M ⇉ N) := by
+  induction step 
+  case' reduce => rename_i r; cases r
+  all_goals apply_rules [Parallel.app, Parallel.abs, Parallel.beta, Parallel_refl, step_to_para] 
 
 theorem app_l_cong {L L' R} : (L ↠β L') → (app L R ↠β app L' R) := by
   intros redex
