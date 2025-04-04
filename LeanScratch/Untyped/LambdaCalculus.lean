@@ -361,13 +361,22 @@ theorem para_triangle {M N} (para : M ⇉ N) : (N ⇉ M.plus) :=
   | @Parallel.app (var _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
   | @Parallel.app (app _ _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
 
-theorem para_diamond : Diamond (· ⇉ · ) := by
+theorem para_diamond : Diamond Parallel := by
   simp [Diamond]
   intros M N N' p1 p2
   exact ⟨M.plus, ⟨para_triangle p1, para_triangle p2⟩⟩
 
--- TOTO: having trouble with termination here...
-theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= sorry
+theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= by
+  revert N
+  induction MN' using Relation.ReflTransGen.head_induction_on
+  case refl => 
+    intros N _
+    exists N
+  case head M M' M_M' M'_N' ih =>
+    intros N MN
+    have ⟨L, ⟨N_L, M'_L⟩⟩ := para_diamond MN M_M'
+    have ⟨L', ⟨L_L', N'_L'⟩⟩ := ih M'_L
+    refine ⟨L', ⟨Relation.ReflTransGen.head N_L L_L', N'_L'⟩⟩
 
 theorem chain_diamond : Diamond (· ⇉* ·) := by
   simp [Diamond]
