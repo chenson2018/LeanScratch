@@ -348,24 +348,21 @@ def Term.plus (t : Term) : Term :=
   | app (abs N) M => (N.plus [0 := M.plus.shift 1]) |>.unshift 1
   | app L M => app L.plus M.plus
 
-theorem para_triangle {M N} (para : M ⇉ N) : (N ⇉ M.plus) := 
+theorem para_tri {M N} (para : M ⇉ N) : (N ⇉ M.plus) := 
   match para with
   | Parallel.var x => Parallel.var x
-  | Parallel.abs ρ => Parallel.abs (para_triangle ρ)
-  | Parallel.beta p1 p2 => by
-      simp [plus]
-      apply para_unshift
-      -- TODO: this is going to be a pain....
-      sorry
-  | @Parallel.app (Term.abs _) _ _ _ (Parallel.abs p1) p2 => Parallel.beta (para_triangle p2) (para_triangle p1)
-  | @Parallel.app (var _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
-  | @Parallel.app (app _ _) _ _ _ p1 p2 => Parallel.app (para_triangle p1) (para_triangle p2)
+  | Parallel.abs ρ => Parallel.abs (para_tri ρ)
+  | Parallel.beta p1 p2 => para_unshift (sub_para (para_tri p2) (para_shift (para_tri p1)))
+  | @Parallel.app (Term.abs _) _ _ _ (Parallel.abs p1) p2 => Parallel.beta (para_tri p2) (para_tri p1)
+  | @Parallel.app (var _) _ _ _ p1 p2 => Parallel.app (para_tri p1) (para_tri p2)
+  | @Parallel.app (app _ _) _ _ _ p1 p2 => Parallel.app (para_tri p1) (para_tri p2)
 
 theorem para_diamond : Diamond Parallel := by
   simp [Diamond]
   intros M N N' p1 p2
-  exact ⟨M.plus, ⟨para_triangle p1, para_triangle p2⟩⟩
+  exact ⟨M.plus, ⟨para_tri p1, para_tri p2⟩⟩
 
+-- https://github.com/iwilare/church-rosser/blob/main/ConfluenceParallel.agda was helpful here
 theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= by
   revert N
   induction MN' using Relation.ReflTransGen.head_induction_on
