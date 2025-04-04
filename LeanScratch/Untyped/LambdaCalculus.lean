@@ -122,17 +122,6 @@ theorem free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shiftₙ 
        · exact l
        · exact r
 
--- TODO: I think this might work?
--- I have seen Agda examples where they carry it with the Term type, but I prefer it seperate...
-lemma substitution_comm 
-  {n : ℕ} 
-  {M N L : Term} 
-  (M_free : free M (n+2))
-  (N_free : free N (n+1))
-  (L_free : free L n)
-  : (M [0 := N] [0 := L]) = (M [1 := L] [0 := N [0 := L]])
-  := by sorry
-
 -- Barendregt chapter 3
 inductive Step_R (R : Term → Term → Prop) : Term → Term → Prop
 | reduce {M N}   : R M N → Step_R R M N
@@ -317,6 +306,14 @@ theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
 -- much thanks to https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
+
+-- TODO: these all need some additional conditions about free variables, I'd like to use what I defined above
+lemma sub_comm (m n : ℕ) (t1 t2 t3 : Term)
+  : (t1 [m := t2.shiftₙ 0 (m+1)] [(m+1)+n := t3.shiftₙ 0 (m+1)]) = 
+    (t1 [(m+1)+n := t3.shiftₙ 0 (m+1)] [m := (t2 [n := t3]).shiftₙ 0 (m+1)])
+  := sorry
+
+theorem unshiftSubstSwap {n : ℕ} (t1 t2 : Term) : (t1 [n+1 := t2.shift]).unshift = (t1.unshift [n := t2]) := sorry
 theorem para_shift {c d : ℕ} {M M'} : (M ⇉ M') → (M.shiftₙ c d ⇉ M'.shiftₙ c d) := sorry
 theorem para_unshift {c d : ℕ} {M M'} : (M ⇉ M') → (M.unshiftₙ c d ⇉ M'.unshiftₙ c d) := sorry
 
@@ -337,7 +334,17 @@ theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := 
       apply sub_para
       exact r
       exact M_M'
-  | Parallel.beta _ _ => sorry
+  | @Parallel.beta W X Y Z WX YZ => 
+      have h₁ : (Z[0:=X.shift].unshift[x:=M']) = ((Z [ x+1 := M'.shift ]) [ 0 := (X [ x := M' ]).shift ]).unshift := 
+      calc Z[0:=X.shift].unshift[x:=M']
+       _ = (Z[0:=X.shift][x+1:=M'.shift]).unshift := by rw [unshiftSubstSwap]
+       _ = (Z [ x+1 := M'.shift ] [ 0 := (X [ x := M' ]).shift ]).unshift := by
+            have eq := sub_comm 0 x Z X M'
+            rw [Nat.zero_add, Nat.add_comm 1 x] at eq
+            simp [shift, unshift]
+            rw [eq]
+      rw [h₁]
+      exact Parallel.beta (sub_para WX M_M') (sub_para YZ (para_shift M_M'))
 
 def Term.plus (t : Term) : Term :=
   match t with
