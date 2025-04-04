@@ -51,7 +51,7 @@ def Term.shiftₙ (c d : ℕ) : Term → Term
 | app t₁ t₂ => app (shiftₙ c d t₁) (shiftₙ c d t₂)
 
 @[simp]
-def Term.shift := Term.shiftₙ 0
+def Term.shift := Term.shiftₙ 0 1
 
 def Term.unshiftₙ (c d : ℕ) : Term → Term
 | var k     => var $ if k < c then k else (k - d)
@@ -59,12 +59,12 @@ def Term.unshiftₙ (c d : ℕ) : Term → Term
 | app t₁ t₂ => app (unshiftₙ c d t₁) (unshiftₙ c d t₂)
 
 @[simp]
-def Term.unshift := Term.unshiftₙ 0
+def Term.unshift := Term.unshiftₙ 0 1
 
 def Term.sub (t : Term) (j : ℕ) (s : Term) : Term := 
   match t with
   | var k     => if k = j then s else var k
-  | abs t₁    => abs $ sub t₁ (j+1) (s.shift 1)
+  | abs t₁    => abs $ sub t₁ (j+1) s.shift
   | app t₁ t₂ => app (sub t₁ j s) (sub t₂ j s)
 
 notation:39 M "[" i ":=" N "]" => Term.sub M i N
@@ -121,8 +121,6 @@ theorem free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shiftₙ 
        <;> rename_i l r
        · exact l
        · exact r
-
-theorem free_shift (t : Term) (n d: ℕ) (h : free t n) : free (t.shift d) (n+d) := free_shiftₙ t n 0 d h
 
 -- TODO: I think this might work?
 -- I have seen Agda examples where they carry it with the Term type, but I prefer it seperate...
@@ -203,7 +201,7 @@ theorem equality_descendant
 
 -- now on to β-reduction specifically
 inductive β : Term → Term → Prop
-| reduce {M N} : β {{{ (λ . ~M) ~N }}} (M [0 := N.shift 1] |>.unshift 1) 
+| reduce {M N} : β {{{ (λ . ~M) ~N }}} (M [0 := N.shift]).unshift
 
 -- follows PLFA (sorta...)
 mutual
@@ -256,7 +254,7 @@ inductive Parallel : Term → Term → Prop
 | var (x : ℕ) : Parallel (var x) (var x)
 | abs {N N'} : Parallel N N' →  Parallel (abs N) (abs N')
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel {{{ ~L ~M }}} {{{ ~L' ~M' }}}
-| beta {N N' M M'} : Parallel N N' → Parallel M M' → Parallel {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift 1] |>.unshift 1)
+| beta {N N' M M'} : Parallel N N' → Parallel M M' → Parallel {{{ (λ . ~M) ~N }}} (M' [0 := N'.shift]).unshift
 
 notation:39 t " ⇉ "  t' =>                       Parallel t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
@@ -308,7 +306,7 @@ lemma para_to_redex {M N} (para : M ⇉ N) : (M ↠β N) := by
       calc
         (N.abs.app M) ↠β (N'.abs.app M)  := app_l_cong (abs_cong (para_to_redex p₂))
         _             ↠β (N'.abs.app M') := app_r_cong (para_to_redex (p₁))
-        _             ↠β (unshift 1 (N'[0:=shift 1 M'])) := by
+        _             ↠β (N'[0:= M'.shift]).unshift := by
           apply Relation.ReflTransGen.single
           apply Step_R.reduce
           apply β.reduce
@@ -345,7 +343,7 @@ def Term.plus (t : Term) : Term :=
   match t with
   | var x => var x
   | abs N => abs N.plus
-  | app (abs N) M => (N.plus [0 := M.plus.shift 1]) |>.unshift 1
+  | app (abs N) M => (N.plus [0 := M.plus.shift]).unshift
   | app L M => app L.plus M.plus
 
 theorem para_tri {M N} (para : M ⇉ N) : (N ⇉ M.plus) := 
@@ -400,8 +398,8 @@ theorem confluence : Diamond (· ↠β ·) := by
 
 -- some example for sanity checks
 -- Pierce exercise 6.2.2
-example : {{{ (λ.λ. 1 (0 2)) }}}.shift 2 = {{{ λ. λ. 1 (0 4) }}} := by simp [shift, shiftₙ]
-example : {{{ λ. 0 1 (λ. 0 1 2) }}}.shift 2 = {{{ λ. 0 3 (λ. 0 1 4) }}} := by simp [shift, shiftₙ]
+example : {{{ (λ.λ. 1 (0 2)) }}}.shiftₙ 0 2 = {{{ λ. λ. 1 (0 4) }}} := by simp [shift, shiftₙ]
+example : {{{ λ. 0 1 (λ. 0 1 2) }}}.shiftₙ 0 2 = {{{ λ. 0 3 (λ. 0 1 4) }}} := by simp [shift, shiftₙ]
 
 -- Pierce exercise 6.2.5
 example : sub {{{ (0 (λ.λ.2)) }}} 0 {{{ 1 }}} = {{{ 1 (λ. λ. 3) }}}:= by simp [sub, shift, shiftₙ]
