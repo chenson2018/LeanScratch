@@ -35,8 +35,8 @@ theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
   case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
-theorem confluence_beta : Diamond (· ↠β ·) := by
-  simp only [Diamond]
+theorem confluence_beta : Church_Rosser β := by
+  simp
   intros L M₁ M₂ L_M₁ L_M₂
   have ⟨N, ⟨M₁_chain_N, M₂_chain_N⟩⟩ := chain_diamond (redex_iff_chain.mp L_M₁) (redex_iff_chain.mp L_M₂)
   exists N
