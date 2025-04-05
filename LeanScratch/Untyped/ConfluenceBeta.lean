@@ -35,10 +35,4 @@ theorem redex_iff_chain {M N} : (M ↠β N) ↔ (M ⇉* N) := by
   case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
-theorem confluence_beta : Church_Rosser β := confluence_sim redex_iff_chain chain_diamond 
-
-
-
-
-
-
+theorem confluence_beta : Confluence (· →β ·) := confluence_sim redex_iff_chain chain_diamond 

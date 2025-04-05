@@ -55,14 +55,14 @@ theorem sub_reduction (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N'
 abbrev Diamond {α} (R : α → α → Prop) := ∀ {A B C : α}, R A B → R A C → (∃ D, R B D ∧ R C D)
 
 @[simp]
-abbrev Church_Rosser (R : Term → Term → Prop) := Diamond (· ↠R · )
+abbrev Confluence {α} (R : α → α → Prop) := Diamond (Relation.ReflTransGen R)
 
 -- a couple of general lemmas
-theorem diamond_ReflTrans {α} (R : α → α → Prop) (diamond : Diamond R) : Diamond (Relation.ReflTransGen R) := sorry
+theorem diamond_ReflTrans {α} (R : α → α → Prop) (diamond : Diamond R) : Confluence R := sorry
 
 theorem equality_descendant 
   {R : Term → Term → Prop}
-  (cr : Church_Rosser R) 
+  (confluence : Confluence (· →R ·)) 
   {M N : Term}
   (eq : M =R N)
   : ∃ Z : Term, ((M ↠R Z) ∧ (N ↠R Z))
@@ -75,7 +75,7 @@ theorem equality_descendant
   case trans M L N M_L L_N ih_ML ih_LN =>
     have ⟨Z₁, ⟨l₁, r₁⟩⟩ := ih_ML
     have ⟨Z₂, ⟨l₂, r₂⟩⟩ := ih_LN
-    have ⟨Z, ⟨l, r⟩⟩ := cr r₁ l₂
+    have ⟨Z, ⟨l, r⟩⟩ := confluence r₁ l₂
     exists Z
     and_intros
     · exact Relation.ReflTransGen.trans l₁ l
@@ -87,7 +87,7 @@ theorem equality_descendant
       exact x_y
     · rfl
 
-theorem confluence_sim {R R'} (sim : ∀ {M N}, (M ↠R N) ↔ R' M N) (diamond : Diamond R') : Church_Rosser R := by
+theorem confluence_sim {R R'} (sim : ∀ {M N}, (M ↠R N) ↔ R' M N) (diamond : Diamond R') : Confluence (· →R ·) := by
   intros L M₁ M₂ L_M₁ L_M₂
   have ⟨N, ⟨M₁_chain_N, M₂_chain_N⟩⟩ := diamond (sim.mp L_M₁) (sim.mp L_M₂)
   exact ⟨N, ⟨sim.mpr M₁_chain_N, sim.mpr M₂_chain_N⟩⟩
