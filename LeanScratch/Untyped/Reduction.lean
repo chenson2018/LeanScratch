@@ -17,7 +17,7 @@ notation:39 t " ↠" R:arg t' => Relation.ReflTransGen (Step_R R)   t t'
 def Equality_R  (R : Term → Term → Prop) := Relation.EqvGen (Step_R R)
 notation:39 t " =" R:arg t' => Equality_R  R t t'
 
--- some congruence lemmas about beta reduction
+-- some congruence lemmas about reduction
 theorem app_l_cong {M M' N} {R : Term → Term → Prop} : (M ↠R M') → (app M N ↠R app M' N) := by
   intros redex
   induction' redex
