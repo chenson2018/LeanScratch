@@ -67,3 +67,8 @@ theorem equality_descendant
     · apply Relation.ReflTransGen.single
       exact x_y
     · rfl
+
+theorem confluence_sim {R R'} (sim : ∀ {M N}, (M ↠R N) ↔ R' M N) (diamond : Diamond R') : Church_Rosser R := by
+  intros L M₁ M₂ L_M₁ L_M₂
+  have ⟨N, ⟨M₁_chain_N, M₂_chain_N⟩⟩ := diamond (sim.mp L_M₁) (sim.mp L_M₂)
+  exact ⟨N, ⟨sim.mpr M₁_chain_N, sim.mpr M₂_chain_N⟩⟩
