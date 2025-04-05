@@ -9,7 +9,7 @@ open Term
 
 -- Pierce definition 6.2.1
 def Term.shiftₙ (c d : ℕ) : Term → Term
-| var k     => var $ if k < c then k else (k + d)
+| var k     => if k < c then var k else var (k + d)
 | abs t₁    => abs $ shiftₙ (c+1) d t₁
 | app t₁ t₂ => app (shiftₙ c d t₁) (shiftₙ c d t₂)
 

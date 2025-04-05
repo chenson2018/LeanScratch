@@ -6,7 +6,6 @@ import LeanScratch.Untyped.Basic
 import LeanScratch.Untyped.Beta
 import LeanScratch.Untyped.ConfluenceBeta
 import LeanScratch.Untyped.Examples
-import LeanScratch.Untyped.Free
 import LeanScratch.Untyped.Parallel
 import LeanScratch.Untyped.Reduction
 import LeanScratch.Untyped.Shifting
