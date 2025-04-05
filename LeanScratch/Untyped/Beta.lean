@@ -51,22 +51,3 @@ theorem progress' (M : Term) : Normalized M ∨ (∃ M', M →β M') := by
   case step M' M_M' =>
     right
     exists M'
-
--- some congruence lemmas about beta reduction
-theorem app_l_cong {L L' R} : (L ↠β L') → (app L R ↠β app L' R) := by
-  intros redex
-  induction' redex
-  case refl => rfl
-  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξᵣ r)
-
-theorem app_r_cong {R R' L} : (R ↠β R') → (app L R ↠β app L R') := by
-  intros redex
-  induction' redex
-  case refl => rfl
-  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξₗ r)
-
-theorem abs_cong {N N'} : ( N ↠β N') → (N.abs ↠β N'.abs) := by
-  intros redex
-  induction' redex
-  case refl => rfl
-  case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
