@@ -110,7 +110,7 @@ theorem equality_descendant
       exact x_y
     · rfl
 
-theorem confluence_sim {R R'} (sim : ∀ {M N}, (M ↠R N) ↔ R' M N) (diamond : Diamond R') : Confluence (· →R ·) := by
+theorem diamond_bisim {α} {R R'} (sim : ∀ {M N : α}, R M N ↔ R' M N) (h : Diamond R) : Diamond R' := by
   intros L M₁ M₂ L_M₁ L_M₂
-  have ⟨N, ⟨M₁_chain_N, M₂_chain_N⟩⟩ := diamond (sim.mp L_M₁) (sim.mp L_M₂)
-  exact ⟨N, ⟨sim.mpr M₁_chain_N, sim.mpr M₂_chain_N⟩⟩
+  have ⟨N, ⟨M₁_chain_N, M₂_chain_N⟩⟩ := h (sim.mpr L_M₁) (sim.mpr L_M₂)
+  exact ⟨N, ⟨sim.mp M₁_chain_N, sim.mp M₂_chain_N⟩⟩
