@@ -30,9 +30,9 @@ lemma para_to_redex {M N} (para : M ⇉ N) : (M ↠β N) := by
           apply Step_R.reduce
           apply β.reduce
 
-theorem redex_iff_chain {M N} : (M ⇉* N) ↔ (M ↠β N) := by
+theorem parachain_iff_redex {M N} : (M ⇉* N) ↔ (M ↠β N) := by
   refine Iff.intro ?chain_to_redex ?redex_to_chain <;> intros h <;> induction' h <;> try rfl
   case redex_to_chain.tail redex chain => exact Relation.ReflTransGen.tail chain (step_to_para redex)
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
-theorem confluence_beta : Confluence (· →β ·) := diamond_bisim redex_iff_chain @para_confluence
+theorem confluence_beta : Confluence (· →β ·) := diamond_bisim parachain_iff_redex @para_confluence
