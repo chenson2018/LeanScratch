@@ -57,8 +57,30 @@ abbrev Diamond {α} (R : α → α → Prop) := ∀ {A B C : α}, R A B → R A 
 @[simp]
 abbrev Confluence {α} (R : α → α → Prop) := Diamond (Relation.ReflTransGen R)
 
--- a couple of general lemmas
-theorem diamond_ReflTrans {α} (R : α → α → Prop) (diamond : Diamond R) : Confluence R := sorry
+-- thanks to https://gist.github.com/siraben/ee3f16bf501ab7ecb49d63ecd3a2d2b1
+lemma Relation.ReflTransGen.diamond_extend {α} {A B C} {R : α → α → Prop} (h : Diamond R) : 
+  Relation.ReflTransGen R A B → 
+  R A C → 
+  ∃ D, Relation.ReflTransGen R B D ∧ Relation.ReflTransGen R C D := by
+  intros AB _
+  revert C
+  induction' AB using Relation.ReflTransGen.head_induction_on <;> intros C AC
+  case refl => exact ⟨C, ⟨single AC, by rfl⟩⟩
+  case head A'_C' _ ih =>
+    obtain ⟨D, ⟨CD, C'_D⟩⟩ := h AC A'_C'
+    obtain ⟨D', ⟨B_D', D_D'⟩⟩ := ih C'_D
+    exact ⟨D', ⟨B_D', head CD D_D'⟩⟩
+
+-- the diamond on a relation implies diamond on reflexive transitive closure
+theorem Relation.ReflTransGen.diamond {α} {R : α → α → Prop} (h : Diamond R) : Confluence R := by
+  intros A B C AB BC
+  revert C
+  induction AB using Relation.ReflTransGen.head_induction_on <;> intros C BC
+  case refl => exists C
+  case head _ _ A'_C' _ ih =>
+    obtain ⟨D, ⟨CD, C'_D⟩⟩ := diamond_extend h BC A'_C'
+    obtain ⟨D', ⟨B_D', D_D'⟩⟩ := ih C'_D
+    exact ⟨D', ⟨B_D', trans CD D_D'⟩⟩
 
 theorem equality_descendant 
   {α : Type}

@@ -73,31 +73,4 @@ theorem para_diamond : Diamond Parallel := by
   intros M N N' p1 p2
   exact ⟨M.plus, ⟨para_tri p1, para_tri p2⟩⟩
 
--- https://github.com/iwilare/church-rosser/blob/main/ConfluenceParallel.agda was helpful here
-theorem strip {M N N'} (MN : M ⇉ N) (MN' : M ⇉* N') : ∃L, ((N ⇉* L) ∧ (N' ⇉ L)):= by
-  revert N
-  induction MN' using Relation.ReflTransGen.head_induction_on
-  case refl => 
-    intros N _
-    exists N
-  case head M M' M_M' M'_N' ih =>
-    intros N MN
-    have ⟨L, ⟨N_L, M'_L⟩⟩ := para_diamond MN M_M'
-    have ⟨L', ⟨L_L', N'_L'⟩⟩ := ih M'_L
-    refine ⟨L', ⟨Relation.ReflTransGen.head N_L L_L', N'_L'⟩⟩
-
-theorem chain_diamond : Diamond (· ⇉* ·) := by
-  simp [Diamond]
-  intros L M₂ M₁ L_M₂
-  revert M₁
-  -- PLFA defines the transitive closure with head instead of tail, but we can
-  -- specify to induct that way if we want, Mathlib even has it already!
-  induction L_M₂ using Relation.ReflTransGen.head_induction_on
-  case refl =>
-    intros M₁ L_M₁
-    exact ⟨M₁, ⟨L_M₁, by rfl⟩⟩
-  case head M₁ M₁' L_M₁_s M₁_M₁' ih =>
-    intros M₂ L_M₁_c
-    have ⟨N,  ⟨M₁_N_c, M₂_N_p⟩⟩ := strip L_M₁_s L_M₁_c
-    have ⟨N', ⟨M₁'_N', N_N'⟩⟩ := ih M₁_N_c
-    refine ⟨N', ⟨M₁'_N', Relation.ReflTransGen.head M₂_N_p N_N'⟩⟩    
+theorem para_confluence : Confluence Parallel := Relation.ReflTransGen.diamond para_diamond
