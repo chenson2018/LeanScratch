@@ -31,17 +31,16 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
     induction body <;> rw [←Nat.add_right_comm n 1 d]
     case a.var x' =>
       simp [shiftₙ]
-      sorry
---      by_cases h' : x' < c + 1 
---      <;> simp [h'] 
---      <;> apply free.var
---      <;> cases h
---      <;> rename_i h
---      <;> cases ih (n+1) h (c+1)
---      <;> rename_i h''
---      <;> simp [h'] at h''
---      · exact h''
---      · exact Nat.add_lt_add_right h'' d
+      by_cases h' : x' < c + 1 
+      <;> simp [h'] 
+      <;> apply free.var
+      <;> cases h
+      <;> rename_i h
+      <;> cases ih (n+1) h (c+1)
+      <;> rename_i h''
+      <;> simp [h'] at h''
+      · exact h''
+      · exact Nat.add_lt_add_right h'' d
     case a.abs body ih' =>
        apply free.abs
        cases h with | abs h' =>
