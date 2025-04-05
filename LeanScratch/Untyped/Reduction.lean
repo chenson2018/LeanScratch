@@ -61,11 +61,12 @@ abbrev Confluence {α} (R : α → α → Prop) := Diamond (Relation.ReflTransGe
 theorem diamond_ReflTrans {α} (R : α → α → Prop) (diamond : Diamond R) : Confluence R := sorry
 
 theorem equality_descendant 
-  {R : Term → Term → Prop}
-  (confluence : Confluence (· →R ·)) 
-  {M N : Term}
-  (eq : M =R N)
-  : ∃ Z : Term, ((M ↠R Z) ∧ (N ↠R Z))
+  {α : Type}
+  {R : α → α → Prop}
+  (confluence : Confluence R) 
+  {M N : α}
+  (eq : Relation.EqvGen R M N)
+  : ∃ Z, ((Relation.ReflTransGen R M Z) ∧ (Relation.ReflTransGen R N Z))
   := by
   induction eq
   case refl x => exists x
