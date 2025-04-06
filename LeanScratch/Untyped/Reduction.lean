@@ -42,20 +42,18 @@ theorem shift_reduction (N N' : Term) (R : Term → Term → Prop) (h :N ↠R N'
 
 theorem sub_reduction (i : ℕ) (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N') 
   : (M [i := N]) ↠R (M [i := N']) := by
-  revert i
-  revert N
-  revert N'
-  induction M <;> intros N' N h i
+  revert i N N'
+  induction M <;> intros i N N' h
   case var x' => by_cases eq : x' = 0 <;> simp [sub, eq] <;> aesop
   case abs body ih =>
     apply abs_cong
     simp [sub]
-    refine ih (shiftₙ 0 1 N') (shiftₙ 0 1 N) ?_ (i + 1)
+    refine ih (i + 1) (shiftₙ 0 1 N) (shiftₙ 0 1 N') ?_
     exact shift_reduction N N' R h
   case app l r ih_l ih_r =>
     calc
-      app (l[i:=N]) (r[i:=N]) ↠R app (l [i := N']) (r [i :=N ]) := app_l_cong (ih_l _ _ h _)
-      _                       ↠R app (l [i := N']) (r [i :=N']) := app_r_cong (ih_r _ _ h _)
+      app (l[i:=N]) (r[i:=N]) ↠R app (l [i := N']) (r [i :=N ]) := app_l_cong (ih_l _ _ _ h)
+      _                       ↠R app (l [i := N']) (r [i :=N']) := app_r_cong (ih_r _ _ _ h)
 
 @[simp]
 abbrev Diamond {α} (R : α → α → Prop) := ∀ {A B C : α}, R A B → R A C → (∃ D, R B D ∧ R C D)

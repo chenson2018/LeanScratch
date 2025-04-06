@@ -10,9 +10,8 @@ inductive Term.free : Term → ℕ → Prop where
 
 -- Pierce exercise 6.2.6
 theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shiftₙ c d) (n+d) := by
-  revert c
-  revert n
-  induction t <;> intros n h c <;> simp [shiftₙ]
+  revert c n
+  induction t <;> intros n c h <;> simp [shiftₙ]
 
   case var x =>
     cases h with | var h => 
@@ -23,8 +22,8 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
   case app l r l_ih r_ih =>
     cases h with | app hl hr =>
     apply free.app
-    · exact l_ih n hl c
-    · exact r_ih n hr c
+    · exact l_ih n c hl
+    · exact r_ih n c hr
 
   case abs body ih =>
     apply free.abs
@@ -36,7 +35,7 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
       <;> apply free.var
       <;> cases h
       <;> rename_i h
-      <;> cases ih (n+1) h (c+1)
+      <;> cases ih (n+1) (c+1) h
       <;> rename_i h''
       <;> simp [h'] at h''
       · exact h''
@@ -44,13 +43,13 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
     case a.abs body ih' =>
        apply free.abs
        cases h with | abs h' =>
-       cases ih (n+1) h' (c+1) with | abs h'' =>
+       cases ih (n+1) (c+1) h' with | abs h'' =>
        exact h''
     case a.app l' r' lih' rih' =>
        apply free.app
        <;> cases h
        <;> rename_i h
-       <;> cases ih (n+1) h (c+1)
+       <;> cases ih (n+1) (c+1) h
        <;> rename_i l r
        · exact l
        · exact r
