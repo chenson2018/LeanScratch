@@ -36,20 +36,26 @@ theorem abs_cong {N N'} {R : Term → Term → Prop} : ( N ↠R N') → (N.abs �
   case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
 
--- we can say some things generally without setting a notion of reduction
--- TODO: should the index here be zero??
-theorem sub_reduction (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N') 
-  : (M [0 := N]) ↠R (M [0 := N']) := by
-  induction M
-  case var x' =>
-    simp [sub]
-    by_cases eq : x' = 0 <;> simp [eq]
-    · exact h
-    · rfl
+-- TODO: is this true as stated, without conditions on R???
+-- might want to generalize over shifting parameters
+theorem shift_reduction (N N' : Term) (R : Term → Term → Prop) (h :N ↠R N') : shiftₙ 0 1 N ↠R shiftₙ 0 1 N' := sorry
+
+theorem sub_reduction (i : ℕ) (M N N' : Term) (R : Term → Term → Prop) (h :N ↠R N') 
+  : (M [i := N]) ↠R (M [i := N']) := by
+  revert i
+  revert N
+  revert N'
+  induction M <;> intros N' N h i
+  case var x' => by_cases eq : x' = 0 <;> simp [sub, eq] <;> aesop
   case abs body ih =>
-    sorry    
+    apply abs_cong
+    simp [sub]
+    refine ih (shiftₙ 0 1 N') (shiftₙ 0 1 N) ?_ (i + 1)
+    exact shift_reduction N N' R h
   case app l r ih_l ih_r =>
-    sorry
+    calc
+      app (l[i:=N]) (r[i:=N]) ↠R app (l [i := N']) (r [i :=N ]) := app_l_cong (ih_l _ _ h _)
+      _                       ↠R app (l [i := N']) (r [i :=N']) := app_r_cong (ih_r _ _ h _)
 
 @[simp]
 abbrev Diamond {α} (R : α → α → Prop) := ∀ {A B C : α}, R A B → R A C → (∃ D, R B D ∧ R C D)
