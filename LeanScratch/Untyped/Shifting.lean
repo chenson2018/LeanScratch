@@ -8,51 +8,14 @@ inductive Term.free : Term → ℕ → Prop where
 | abs {n' : ℕ} {t₁ : Term} : free t₁ (n'+1) → free (abs t₁) n'
 | app {n : ℕ} {t₁ t₂ : Term} : free t₁ n → free t₂ n → free (app t₁ t₂) n
 
--- Pierce exercise 6.2.6
+-- Pierce exercise 6.2.3
 theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shiftₙ c d) (n+d) := by
   revert c n
-  induction t <;> intros n c h <;> simp [shiftₙ]
-
-  case var x =>
-    cases h with | var h => 
-    by_cases h' : x < c <;> simp [h'] <;> apply free.var 
-    · exact Nat.lt_add_right d h
-    · exact Nat.add_lt_add_right h d 
-
-  case app l r l_ih r_ih =>
-    cases h with | app hl hr =>
-    apply free.app
-    · exact l_ih n c hl
-    · exact r_ih n c hr
-
-  case abs body ih =>
-    apply free.abs
-    induction body <;> rw [←Nat.add_right_comm n 1 d]
-    case a.var x' =>
-      simp [shiftₙ]
-      by_cases h' : x' < c + 1 
-      <;> simp [h'] 
-      <;> apply free.var
-      <;> cases h
-      <;> rename_i h
-      <;> cases ih (n+1) (c+1) h
-      <;> rename_i h''
-      <;> simp [h'] at h''
-      · exact h''
-      · exact Nat.add_lt_add_right h'' d
-    case a.abs body ih' =>
-       apply free.abs
-       cases h with | abs h' =>
-       cases ih (n+1) (c+1) h' with | abs h'' =>
-       exact h''
-    case a.app l' r' lih' rih' =>
-       apply free.app
-       <;> cases h
-       <;> rename_i h
-       <;> cases ih (n+1) (c+1) h
-       <;> rename_i l r
-       · exact l
-       · exact r
+  induction t <;> intros n c h <;> cases h <;> constructor <;> try aesop <;> try linarith
+  case abs body ih body_free =>
+    have eq : n + d + 1 = n + 1 + d := by linarith
+    rw [eq]
+    exact ih (n+1) (c+1) body_free
 
 -- much thanks to https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
 -- TODO: some of these need some additional conditions about free variables, I'd like to use what I defined above
