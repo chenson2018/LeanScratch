@@ -20,8 +20,32 @@ theorem Parallel.refl (M : Term) : (M ⇉ M) := by
   case abs body ih => exact Parallel.abs ih
   case app l r l_ih r_ih => exact Parallel.app l_ih r_ih
 
-theorem para_shift {c d : ℕ} {M M'} : (M ⇉ M') → (M.shiftₙ c d ⇉ M'.shiftₙ c d) := sorry
-theorem para_unshift {c d : ℕ} {M M'} : (M ⇉ M') → (M.unshiftₙ c d ⇉ M'.unshiftₙ c d) := sorry
+theorem para_shift {c d : ℕ} {M M'} : (M ⇉ M') → (M.shiftₙ c d ⇉ M'.shiftₙ c d) := by
+  intros para
+  revert c d
+  induction para <;> intros c d
+  case var x => rfl
+  case app => constructor <;> aesop
+  case abs => constructor; aesop
+  case beta t2 t2' t1 t1' t1p t2p ih₁ ih₂ =>
+    simp [unshift]
+    have eq : shiftₙ c d (unshiftₙ 0 1 (t1'[0:=shiftₙ 0 1 t2'])) = 
+              unshiftₙ 0 1 (shiftₙ (c+1) d (t1' [0 := shiftₙ 0 1 (shiftₙ c d t2')])) := sorry
+    rw [eq]
+    -- getting this into the right shape is a pain
+    -- having (un)shift and (un)shiftₙ doesn't help 
+    sorry
+
+theorem para_unshift {c d : ℕ} {M M'} : (M ⇉ M') → (M.unshiftₙ c d ⇉ M'.unshiftₙ c d) := by
+  intros para
+  revert c d
+  induction para <;> intros c d
+  case var x => rfl
+  case app => constructor <;> aesop
+  case abs => constructor; aesop
+  case beta X Y W Z XY WZ ih₁ ih₂ =>
+    simp [unshift]
+    sorry
 
 theorem sub_para {x : ℕ} {N N' M M'} : (N ⇉ N') → (M ⇉ M') → (N [x := M] ⇉ N' [x := M']) := by
   intros N_N' M_M'
