@@ -17,6 +17,19 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
     rw [eq]
     exact ih (n+1) (c+1) body_free
 
+-- Pierce exercise 6.2.6
+theorem Term.free_sub {j n s t} (h : j ≤ n) (free_s : free s n) (free_t : free t n) : free (t [j := s]) n := by
+  revert j n s
+  induction t <;> intros j n s h free_s free_t <;> simp [sub, shift]
+  case var x => aesop
+  all_goals (cases free_t; constructor; try aesop)
+  case app => aesop
+  case abs body ih body_free =>
+    refine ih ?_ ?_ ?_
+    · linarith
+    · exact free_shiftₙ s n 0 1 free_s
+    · assumption
+
 -- much thanks to https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
 -- TODO: some of these need some additional conditions about free variables, I'd like to use what I defined above
 lemma sub_comm (m n : ℕ) (t1 t2 t3 : Term)
