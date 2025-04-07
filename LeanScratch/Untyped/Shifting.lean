@@ -18,7 +18,7 @@ theorem Term.free_shiftₙ (t : Term) (n c d: ℕ) (h : free t n) : free (t.shif
     exact ih (n+1) (c+1) body_free
 
 -- Pierce exercise 6.2.6
-theorem Term.free_sub {j n s t} (h : j ≤ n) (free_s : free s n) (free_t : free t n) : free (t [j := s]) n := by
+theorem Term.free_sub {j n s t} : j ≤ n → free s n → free t n → free (t [j := s]) n := by
   revert j n s
   induction t <;> intros j n s h free_s free_t <;> simp [sub, shift]
   case var x => aesop
