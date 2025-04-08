@@ -2,6 +2,53 @@ import LeanScratch.Untyped.Basic
 
 open Term
 
+-- directly translated from: https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
+inductive Shifted : ℕ → ℕ → Term → Prop where
+| svar1 {d c n} : n < c → Shifted d c (var n)
+| svar2 {d c n} : c + d ≤ n → d ≤ n → Shifted d c (var n)
+| sapp {d c t1 t2} : Shifted d c t1 → Shifted d c t2 → Shifted d c (app t1 t2)
+| sabs {d c t} : Shifted d (c+1) t → Shifted d c (abs t)
+
+theorem shiftUnshiftSwap : ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t →
+                   shiftₙ c d (t.unshiftₙ c' d') = unshiftₙ c' d' (t.shiftₙ (c + d') d) := sorry
+
+theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
+                 shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
+
+theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ c' d') = shiftₙ (c' + d) d' (shiftₙ c d t) := sorry
+
+theorem betaShifted' : ∀ n t1 t2, Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) := sorry
+
+theorem unshiftUnshiftSwap :
+  ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
+  unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := sorry
+
+theorem unshiftSubstSwap2 :
+  ∀ {d c n t1 t2}, n < c → Shifted d c t1 → Shifted d c t2 →
+  unshiftₙ c d (t1 [ n := t2 ]) = ((unshiftₙ c d t1) [ n := unshiftₙ c d t2 ]) := sorry
+
+theorem unshiftShiftSwap : ∀ {d c d' c' t}, c' ≤ c → Shifted d c t →
+                   shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
+
+theorem shiftShifted' :
+  ∀ {d c d' c' t}, c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
+
+theorem betaShifted2 : ∀ {d c n t1 t2}, Shifted d ((n+1)+c) t1 → Shifted d c t2 →
+               Shifted d (n + c) (unshiftₙ n 1 (t1 [ n := shiftₙ 0 (n+1) t2 ])) := sorry
+
+theorem unshiftSubstSwap :
+  ∀ {c n} t1 t2, c ≤ n → Shifted 1 c t1 →
+  unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := sorry
+
+theorem unshiftSubstSwap' :
+  ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
+
+theorem substSubstSwap :
+  ∀ n m t1 t2 t3,
+  (t1 [ m := shiftₙ 0 (m+1) t2 ] [ (m+1) + n := shiftₙ 0 (m+1) t3 ]) =
+  (t1 [ (m + 1) + n := shiftₙ 0 (m+1) t3 ] [ m := shiftₙ 0 (m+1) (t2 [ n := t3 ])]) := sorry
+
+-- the below are not used, partially equivalent to the above however
 -- Pierce definition 6.1.2
 inductive Term.free : Term → ℕ → Prop where
 | var {k n: ℕ} : k < n → free (var k) n
@@ -29,33 +76,3 @@ theorem Term.free_sub {j n s t} : j ≤ n → free s n → free t n → free (t 
     · linarith
     · exact free_shiftₙ s n 0 1 free_s
     · assumption
-
--- much thanks to https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
--- TODO: some of these need some additional conditions about free variables, I'd like to use what I defined above
-lemma sub_comm (m n : ℕ) (t1 t2 t3 : Term)
-  : (t1 [m := t2.shiftₙ 0 (m+1)] [(m+1)+n := t3.shiftₙ 0 (m+1)]) = 
-    (t1 [(m+1)+n := t3.shiftₙ 0 (m+1)] [m := (t2 [n := t3]).shiftₙ 0 (m+1)])
-  := sorry
-
-theorem shiftAdd {d d' c} (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shiftₙ c (d + d') := by
-  revert c
-  induction t <;> intros c
-  case var x => 
-    simp [Term.shiftₙ]
-    by_cases h : x < c <;> simp [Term.shiftₙ, h]
-    have h' : ¬ x + d' < c := by simp_all; exact Nat.le_add_right_of_le h
-    simp [h']
-    ring
-  case app l r ih_l ih_r => exact congrArg₂ Term.app (by apply ih_l) (by apply ih_r)
-  case abs body ih => exact congrArg Term.abs (by apply ih)
-
-theorem unshiftSubstSwap {n : ℕ} (t1 t2 : Term) : (t1 [n+1 := t2.shift]).unshift = (t1.unshift [n := t2]) := by
-  induction t1
-  case var => sorry
-  case app l r ih_l ih_r => exact congrArg₂ Term.app ih_l ih_r
-  case abs body ih => 
-    refine congrArg Term.abs ?_
-    simp [unshiftₙ]
-    -- is this the correct rewrite? not sure...
-    rw [shiftAdd t2]
-    sorry
