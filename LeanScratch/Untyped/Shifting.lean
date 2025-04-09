@@ -102,10 +102,41 @@ theorem unshiftSubstSwap :
 theorem unshiftSubstSwap' :
   ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
 
+theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shiftₙ c (d + d') := by
+  revert c
+  induction t <;> intros c
+  case var x => 
+    simp [Term.shiftₙ]
+    by_cases h : x < c <;> simp [Term.shiftₙ, h]
+    have h' : ¬ x + d' < c := by simp_all; exact Nat.le_add_right_of_le h
+    simp [h']
+    linarith
+  case app l r ih_l ih_r => exact congrArg₂ Term.app (by apply ih_l) (by apply ih_r)
+  case abs body ih => exact congrArg Term.abs (by apply ih)
+
 theorem substSubstSwap :
   ∀ n m t1 t2 t3,
   (t1 [ m := shiftₙ 0 (m+1) t2 ] [ (m+1) + n := shiftₙ 0 (m+1) t3 ]) =
-  (t1 [ (m + 1) + n := shiftₙ 0 (m+1) t3 ] [ m := shiftₙ 0 (m+1) (t2 [ n := t3 ])]) := sorry
+  (t1 [ (m + 1) + n := shiftₙ 0 (m+1) t3 ] [ m := shiftₙ 0 (m+1) (t2 [ n := t3 ])]) := by
+  intros n m t1 t2 t3
+  match t1 with
+  | var x => 
+      simp [sub]
+      by_cases h₁ : x = m <;> simp [h₁]
+      · have h₂ : ¬ m = m + 1 + n := by linarith
+        simp [sub, h₂]
+        sorry 
+      · by_cases h₂ : x = m + 1 + n <;> simp [h₂]
+        · simp [sub]
+          sorry
+        · simp [sub, h₂, h₁]
+  | app l r => simp [sub, congrArg₂ Term.app (substSubstSwap n m l t2 t3) (substSubstSwap n m r t2 t3)]
+  | Term.abs t1 =>
+      have eq := congrArg Term.abs $ substSubstSwap n (m+1) t1 t2 t3
+      simp [sub] at *
+      rw [shiftAdd 1 (m+1) 0 t2, shiftAdd 1 (m+1) 0 t3, shiftAdd 1 (m+1) 0 (t2 [ n := t3 ])]
+      rw [Nat.add_comm 1 (m + 1), Nat.add_right_comm (m + 1) n 1]
+      exact eq 
 
 -- the below are not used, partially equivalent to the above however
 -- Pierce definition 6.1.2
