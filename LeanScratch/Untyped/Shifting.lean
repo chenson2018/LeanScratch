@@ -9,8 +9,33 @@ inductive Shifted : ℕ → ℕ → Term → Prop where
 | sapp {d c t1 t2} : Shifted d c t1 → Shifted d c t2 → Shifted d c (app t1 t2)
 | sabs {d c t} : Shifted d (c+1) t → Shifted d c (abs t)
 
-theorem shiftUnshiftSwap : ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t →
-                   shiftₙ c d (t.unshiftₙ c' d') = unshiftₙ c' d' (t.shiftₙ (c + d') d) := sorry
+open Shifted
+
+theorem shiftUnshiftSwap {d c d' c' t} : 
+  c' ≤ c → Shifted d' c' t → shiftₙ c d (t.unshiftₙ c' d') = unshiftₙ c' d' (t.shiftₙ (c + d') d) := by
+    intros p1 p2
+    match t, p2 with
+    | _, sapp p2 p3 => exact congrArg₂ Term.app (shiftUnshiftSwap p1 p2) (shiftUnshiftSwap p1 p3)
+    | _, sabs p2 => 
+       simp [shiftₙ, unshiftₙ]
+       rw [shiftUnshiftSwap (Nat.add_le_add_right p1 1) p2]
+       have eq : c + 1 + d' = c + d' + 1 := by linarith
+       rw [eq]
+    | var n, p => 
+       simp [shiftₙ, unshiftₙ]
+       by_cases h₁ : n < c' <;> simp [h₁]
+       ·   by_cases h₂ : n < c 
+       <;> by_cases h₃ : n < c + d' 
+       <;> by_cases h₄ : n + d < c'
+       <;> simp [h₁, h₂, h₃, h₄]
+       <;> linarith
+       · cases p
+         case neg.svar1 p =>
+           exfalso
+           apply h₁
+           exact p
+         case neg.svar2 p₁ p₂ =>
+           sorry 
 
 theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
