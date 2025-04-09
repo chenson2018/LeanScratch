@@ -35,7 +35,18 @@ theorem shiftUnshiftSwap {d c d' c' t} :
            apply h₁
            exact p
          case neg.svar2 p₁ p₂ =>
-           sorry 
+           by_cases h₂ : n - d' < c <;> by_cases h₃ : n < c + d' <;> simp [h₁, h₂, h₃]
+           case pos =>
+              exfalso
+              apply h₂
+              exact Nat.sub_lt_right_of_lt_add p₁ h₃
+           all_goals by_cases h₄ : n + d < c' <;> simp [h₄]
+           · linarith
+           · exfalso
+             apply h₃
+             exact (Nat.sub_lt_iff_lt_add' p₁).mp h₂
+           · linarith
+           · rw [Nat.sub_add_comm p₁]
 
 theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
