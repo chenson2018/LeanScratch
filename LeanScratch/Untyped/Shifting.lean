@@ -11,6 +11,18 @@ inductive Shifted : ℕ → ℕ → Term → Prop where
 
 open Shifted
 
+theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shiftₙ c (d + d') := by
+  revert c
+  induction t <;> intros c
+  case var x => 
+    simp [Term.shiftₙ]
+    by_cases h : x < c <;> simp [Term.shiftₙ, h]
+    have h' : ¬ x + d' < c := by simp_all; exact Nat.le_add_right_of_le h
+    simp [h']
+    linarith
+  case app l r ih_l ih_r => exact congrArg₂ Term.app (by apply ih_l) (by apply ih_r)
+  case abs body ih => exact congrArg Term.abs (by apply ih)
+
 theorem shiftUnshiftSwap {d c d' c' t} : 
   c' ≤ c → Shifted d' c' t → shiftₙ c d (t.unshiftₙ c' d') = unshiftₙ c' d' (t.shiftₙ (c + d') d) := by
     intros p1 p2
@@ -76,7 +88,18 @@ theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ 
         exact Nat.lt_of_add_right_lt h₃
       · linarith
   
-theorem betaShifted' : ∀ n t1 t2, Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) := sorry
+theorem betaShifted' (n t1 t2) : Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) := 
+  match t1 with
+  | app l r => sapp (betaShifted' n l t2) (betaShifted' n r t2)
+  | Term.abs t1 => by
+      simp [sub]
+      rw [shiftAdd, Nat.add_comm 1 (n + 1)] 
+      exact sabs $ betaShifted' (n+1) t1 t2
+  | var n' => by
+      simp [sub]
+      by_cases h : n' = n <;> simp [h]
+      · sorry
+      · sorry
 
 theorem unshiftUnshiftSwap :
   ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
@@ -101,18 +124,6 @@ theorem unshiftSubstSwap :
 
 theorem unshiftSubstSwap' :
   ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
-
-theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shiftₙ c (d + d') := by
-  revert c
-  induction t <;> intros c
-  case var x => 
-    simp [Term.shiftₙ]
-    by_cases h : x < c <;> simp [Term.shiftₙ, h]
-    have h' : ¬ x + d' < c := by simp_all; exact Nat.le_add_right_of_le h
-    simp [h']
-    linarith
-  case app l r ih_l ih_r => exact congrArg₂ Term.app (by apply ih_l) (by apply ih_r)
-  case abs body ih => exact congrArg Term.abs (by apply ih)
 
 theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
                   shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := sorry
