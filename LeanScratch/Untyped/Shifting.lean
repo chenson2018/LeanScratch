@@ -114,6 +114,14 @@ theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shift�
   case app l r ih_l ih_r => exact congrArg₂ Term.app (by apply ih_l) (by apply ih_r)
   case abs body ih => exact congrArg Term.abs (by apply ih)
 
+theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
+                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := sorry
+
+theorem shiftShifted : ∀ d c t, Shifted d c (shiftₙ c d t) := sorry
+
+theorem substShiftedCancel :
+  ∀ {d c n t1 t2}, c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
+
 theorem substSubstSwap :
   ∀ n m t1 t2 t3,
   (t1 [ m := shiftₙ 0 (m+1) t2 ] [ (m+1) + n := shiftₙ 0 (m+1) t3 ]) =
@@ -125,11 +133,9 @@ theorem substSubstSwap :
       by_cases h₁ : x = m <;> simp [h₁]
       · have h₂ : ¬ m = m + 1 + n := by linarith
         simp [sub, h₂]
-        sorry 
-      · by_cases h₂ : x = m + 1 + n <;> simp [h₂]
-        · simp [sub]
-          sorry
-        · simp [sub, h₂, h₁]
+        rw [shiftSubstSwap' (by linarith), Nat.add_comm n (m + 1)]
+      · by_cases h₂ : x = m + 1 + n <;> simp [h₁, h₂, sub]
+        refine substShiftedCancel ?_ ?_ (shiftShifted (m+1) 0 t3) <;> linarith
   | app l r => simp [sub, congrArg₂ Term.app (substSubstSwap n m l t2 t3) (substSubstSwap n m r t2 t3)]
   | Term.abs t1 =>
       have eq := congrArg Term.abs $ substSubstSwap n (m+1) t1 t2 t3
