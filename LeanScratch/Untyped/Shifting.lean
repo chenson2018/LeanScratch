@@ -117,7 +117,14 @@ theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shift�
 theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
                   shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := sorry
 
-theorem shiftShifted : ∀ d c t, Shifted d c (shiftₙ c d t) := sorry
+theorem shiftShifted (d c t) : Shifted d c (shiftₙ c d t) := by
+  revert c
+  induction t <;> intros c <;> simp [shiftₙ]
+  case var x =>
+    by_cases h : x < c <;> simp [h]
+    · exact svar1 h
+    · apply svar2 <;> linarith
+  all_goals constructor <;> aesop
 
 theorem substShiftedCancel :
   ∀ {d c n t1 t2}, c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
