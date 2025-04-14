@@ -3,27 +3,31 @@ import LeanScratch.Untyped.Reduction
 
 open Term
 
-inductive β : Term → Term → Prop
+variable {T : Type}
+
+inductive β : Term T → Term T → Prop
 | reduce {M N} : β {{{ (λ . ~M) ~N }}} (M [0 := N.shift]).unshift
 
 -- follows PLFA (sorta...)
 mutual
-  inductive Neutral : Term → Prop
+  inductive Neutral : Term T → Prop
   | of_var (x : ℕ) : Neutral (var x)
-  | app_norm {L M : Term} : Neutral L → Normalized M → Neutral {{{ ~L ~M }}}
+  | of_const (t : T) : Neutral (const t)
+  | app_norm {L M : Term T} : Neutral L → Normalized M → Neutral {{{ ~L ~M }}}
 
-  inductive Normalized : Term → Prop
+  inductive Normalized : Term T → Prop
   | of_neutral {M} : Neutral M → Normalized M
   | of_abs {N} : Normalized N → Normalized {{{ λ . ~N }}}
 end
 
-inductive Progress (M : Term) : Prop
+inductive Progress (M : Term T) : Prop
 | step {N} : (M →β N) → Progress M
 | done     : Normalized M → Progress M
 
 open Progress Normalized Neutral Step_R in
-theorem progress (M : Term) : Progress M := by
+theorem progress (M : Term T) : Progress M := by
   induction M
+  case const t => exact done $ of_neutral (of_const t)
   case var x => exact done (of_neutral (of_var x))
   case abs N prog_N => 
       exact match prog_N with
@@ -41,9 +45,13 @@ theorem progress (M : Term) : Progress M := by
            | step L_r, _ => step (ξᵣ L_r)
            | done (of_neutral neut_L), done norm_r => done (of_neutral (app_norm neut_L norm_r))
            | _, step r_r' => step (ξₗ r_r')
+       | const m =>
+           exact match prog_r with
+           | step r_r' => step (ξₗ r_r')
+           | done norm_r => done (of_neutral (app_norm (of_const m) norm_r))
 
 -- equivalent to the way it's stated in Software Foundations
-theorem progress' (M : Term) : Normalized M ∨ (∃ M', M →β M') := by
+theorem progress' (M : Term T) : Normalized M ∨ (∃ M', M →β M') := by
   induction (progress M)
   case done norm =>
     left

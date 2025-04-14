@@ -1,31 +1,35 @@
 import Mathlib
 
-inductive Term
-| var (x : ℕ) : Term
-| abs (body : Term) : Term
-| app (left right : Term) : Term
+inductive Term (M : Type)
+| const (m : M) : Term M
+| var (x : ℕ) : Term M
+| abs (body : Term M) : Term M
+| app (left right : Term M) : Term M
 
 open Term
 
 -- Pierce definition 6.2.1
-def Term.shiftₙ (c d : ℕ) : Term → Term
+def Term.shiftₙ {M : Type} (c d : ℕ) : Term M → Term M
+| const m   => const m
 | var k     => var (if k < c then k else k + d)
 | abs t₁    => abs $ shiftₙ (c+1) d t₁
 | app t₁ t₂ => app (shiftₙ c d t₁) (shiftₙ c d t₂)
 
 @[simp]
-def Term.shift := Term.shiftₙ 0 1
+def Term.shift {M : Type} : Term M → Term M := Term.shiftₙ 0 1
 
-def Term.unshiftₙ (c d : ℕ) : Term → Term
+def Term.unshiftₙ {M : Type} (c d : ℕ) : Term M → Term M
+| const m   => const m
 | var k     => var $ if k < c then k else (k - d)
 | abs t₁    => abs $ unshiftₙ (c+1) d t₁
 | app t₁ t₂ => app (unshiftₙ c d t₁) (unshiftₙ c d t₂)
 
 @[simp]
-def Term.unshift := Term.unshiftₙ 0 1
+def Term.unshift {M : Type} : Term M → Term M := Term.unshiftₙ 0 1
 
-def Term.sub (t : Term) (j : ℕ) (s : Term) : Term := 
+def Term.sub {M : Type} (t : Term M) (j : ℕ) (s : Term M) : Term M := 
   match t with
+  | const m   => const m
   | var k     => if k = j then s else var k
   | abs t₁    => abs $ sub t₁ (j+1) s.shift
   | app t₁ t₂ => app (sub t₁ j s) (sub t₂ j s)
@@ -38,7 +42,8 @@ notation:39 M "[" i ":=" N "]" => Term.sub M i N
 open Std (Format)
 open Lean.Parser (maxPrec argPrec minPrec)
 
-def Term.format (prec : Nat) : Term → Format
+def Term.format {M : Type} [Repr M] (prec : Nat) : Term M → Format
+| const m => repr m
 | var x => x.repr
 | app e1 e2 => fmtApp <| e1.format argPrec ++ .line ++ e2.format maxPrec
 | abs body => Format.paren <| "λ" ++ .nest 2 (.line ++ body.format minPrec)
@@ -46,7 +51,7 @@ def Term.format (prec : Nat) : Term → Format
     fmtApp (elts : Format) : Format :=
       Repr.addAppParen (.group (.nest 2 elts)) prec
 
-instance Term.instRepr : Repr Term where
+instance Term.instRepr (M : Type) [Repr M] : Repr (Term M) where
   reprPrec tm _ := .group <| .nest 2 (tm.format minPrec)
 
 /-- Embedded language expression -/

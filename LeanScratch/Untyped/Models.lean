@@ -1,4 +1,4 @@
-import Mathlib
+import LeanScratch.Untyped.Basic
 
 inductive AppTerm (M : Type)
 | const (m : M) : AppTerm M
@@ -106,17 +106,11 @@ theorem AppTerm.homo_entail
   have homo_entail := AppTerm.homo_val φ P Q
   sorry
 
-inductive LambdaTerm (M : Type)
-| const (m : M) : LambdaTerm M
-| var (x : ℕ) : LambdaTerm M
-| app (l r : LambdaTerm M) : LambdaTerm M
-| abs (body : LambdaTerm M) : LambdaTerm M
-
-open LambdaTerm
+open Term
 
 -- TODO: shifting here???
 -- I don't want to replicate all that, plus intrinsic is maybe better if I want to relate to simple types
-def LambdaTerm.to_app {M} [Mul M] [CombAlg M] : LambdaTerm M → AppTerm M
+def Term.to_app {M} [Mul M] [CombAlg M] : Term M → AppTerm M
 | var x => AppTerm.var x
 | const m => AppTerm.const m
 | app l r => l.to_app * r.to_app
@@ -124,30 +118,30 @@ def LambdaTerm.to_app {M} [Mul M] [CombAlg M] : LambdaTerm M → AppTerm M
 
 -- TODO: shifting here???
 -- TODO: notation or non-conflicting names
-def AppTerm.to_lam {M} [Mul M] [DecidableEq M] [CombAlg M] : AppTerm M → LambdaTerm M
-| var x => LambdaTerm.var x
+def AppTerm.to_lam {M} [Mul M] [DecidableEq M] [CombAlg M] : AppTerm M → Term M
+| var x => Term.var x
 | const m => if m = k then 
-               LambdaTerm.abs (LambdaTerm.abs (LambdaTerm.var 1))
+               Term.abs (Term.abs (Term.var 1))
              else if m = s then
-               LambdaTerm.abs $
-               LambdaTerm.abs $
-               LambdaTerm.abs $
+               Term.abs $
+               Term.abs $
+               Term.abs $
                
-               LambdaTerm.app
-                (LambdaTerm.app (LambdaTerm.var 2) (LambdaTerm.var 0))
-                (LambdaTerm.app (LambdaTerm.var 1) (LambdaTerm.var 0))
+               Term.app
+                (Term.app (Term.var 2) (Term.var 0))
+                (Term.app (Term.var 1) (Term.var 0))
              else 
-               LambdaTerm.const m
-| app l r => LambdaTerm.app (l.to_lam) (r.to_lam)
+               Term.const m
+| app l r => Term.app (l.to_lam) (r.to_lam)
 
-def LambdaTerm.val {M} [Mul M] [DecidableEq M] [CombAlg M] (t : LambdaTerm M) (ρ : ℕ → M) : M := t.to_app.val ρ
+def Term.val {M} [Mul M] [DecidableEq M] [CombAlg M] (t : Term M) (ρ : ℕ → M) : M := t.to_app.val ρ
 
-def LambdaTerm.atrue_under (M) [Mul M] [DecidableEq M] [CombAlg M] (t t' : LambdaTerm M) (ρ : ℕ → M) := (t.val ρ) = (t'.val ρ)
-notation:39 M ",," ρ:arg "⊨'" A "~" B => LambdaTerm.atrue_under M A B ρ
+def Term.atrue_under (M) [Mul M] [DecidableEq M] [CombAlg M] (t t' : Term M) (ρ : ℕ → M) := (t.val ρ) = (t'.val ρ)
+notation:39 M ",," ρ:arg "⊨'" A "~" B => Term.atrue_under M A B ρ
 
 @[simp]
-def LambdaTerm.atrue (M) [Mul M] [DecidableEq M] [CombAlg M] (t t' : LambdaTerm M) := ∀ ρ, LambdaTerm.atrue_under M t t' ρ
-notation:39 M "⊨'" A "~" B => LambdaTerm.atrue M A B
+def Term.atrue (M) [Mul M] [DecidableEq M] [CombAlg M] (t t' : Term M) := ∀ ρ, Term.atrue_under M t t' ρ
+notation:39 M "⊨'" A "~" B => Term.atrue M A B
 
 -- TODO: I think this should be using =β
 class LambdaAlgebra (M) [Mul M] [DecidableEq M] [CombAlg M] where
@@ -172,9 +166,9 @@ class CPO_Reflexive (D: Type) [OmegaCompletePartialOrder D] (F : D → (D →�
 -- TODO: where exactly is this used below???
 -- I think maybe he means this is the function described in 5.3
 -- but how does this syntactical model fit in with the above definitions??
-def LambdaTerm.to_cpo 
+def Term.to_cpo 
   {D : Type} [OmegaCompletePartialOrder D] (F G) [CPO_Reflexive D F G] [Mul D] [DecidableEq D] [CombAlg D]
-  (t : LambdaTerm D)
+  (t : Term D)
   (ρ : ℕ → D)
   : D
   := 
