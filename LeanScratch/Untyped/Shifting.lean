@@ -208,7 +208,8 @@ theorem betaShifted2 {d c n t1 t2} :
         exact shiftShifted' (by linarith) s2
       · simp [unshiftₙ]
         by_cases h₂ : n' < n <;> simp [h₂]
-        · sorry
+        · apply svar1
+          exact Nat.lt_add_right c h₂
         · sorry
   | _, sapp sl sr => exact sapp (betaShifted2 sl s2) (betaShifted2 sr s2)
   | _, sabs s => 
