@@ -191,8 +191,32 @@ theorem unshiftShiftSwap {d c d' c' t} : c' ≤ c → Shifted d c t →
 theorem shiftShifted' :
   ∀ {d c d' c' t}, c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
 
-theorem betaShifted2 : ∀ {d c n t1 t2}, Shifted d ((n+1)+c) t1 → Shifted d c t2 →
-               Shifted d (n + c) (unshiftₙ n 1 (t1 [ n := shiftₙ 0 (n+1) t2 ])) := sorry
+theorem unshiftShiftSetoff {d c d' c'} (t) : 
+  c ≤ c' → c' ≤ d' + d + c → unshiftₙ c' d' (shiftₙ c (d' + d) t) = shiftₙ c d t := sorry
+
+theorem betaShifted2 {d c n t1 t2} : 
+  Shifted d ((n+1)+c) t1 → 
+  Shifted d c t2 →
+  Shifted d (n + c) (unshiftₙ n 1 (t1 [ n := shiftₙ 0 (n+1) t2 ])) := by
+  intros s1 s2
+  match t1, s1 with
+  | var n', s =>
+      simp [sub]
+      by_cases h₁ : n' = n <;> simp [h₁]
+      · nth_rw 2 [Nat.add_comm]
+        rw [unshiftShiftSetoff t2 (by linarith) (by linarith)]
+        exact shiftShifted' (by linarith) s2
+      · simp [unshiftₙ]
+        by_cases h₂ : n' < n <;> simp [h₂]
+        · sorry
+        · sorry
+  | _, sapp sl sr => exact sapp (betaShifted2 sl s2) (betaShifted2 sr s2)
+  | _, sabs s => 
+      simp [sub, unshiftₙ]
+      apply sabs
+      rw [Nat.add_right_comm (n + 1) c 1] at s
+      rw [shiftAdd 1 (n+1) 0 t2, Nat.add_right_comm n c 1, Nat.add_comm 1 (n + 1)]
+      exact betaShifted2 s s2
 
 theorem unshiftSubstSwap :
   ∀ {c n} t1 t2, c ≤ n → Shifted 1 c t1 →
