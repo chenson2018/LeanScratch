@@ -72,31 +72,7 @@ theorem shiftUnshiftSwap {d c d' c' t} :
 theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
 
-theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ c' d') = shiftₙ (c' + d) d' (shiftₙ c d t) := by
-  intros d c d' c' t p
-  match t with
-  | app l r => exact congrArg₂ Term.app (shiftShiftSwap d c d' c' l p) (shiftShiftSwap d c d' c' r p)
-  | Term.abs body =>
-      simp [shiftₙ]
-      rw [shiftShiftSwap d (c+1) d' (c'+1) body (Nat.add_le_add_right p 1)]
-      have eq : c' + 1 + d = c' + d + 1 := by linarith
-      rw [eq]
-  | var x => 
-      simp [shiftₙ]
-      by_cases h₁ : x < c' 
-  <;> by_cases h₂ : x < c 
-  <;> simp [h₁, h₂]
-      · have h₃ : x < c' + d := by linarith
-        simp [h₃]
-      all_goals by_cases h₃ : x + d' < c <;> simp [h₃]
-      · by_cases h₄ : x < c' + d <;> simp [h₄]
-        linarith
-      · by_cases h₄ : x < c' + d <;> simp [h₄] <;> linarith
-      · exfalso
-        apply h₂
-        exact Nat.lt_of_add_right_lt h₃
-      · linarith
- 
+
 theorem weakShifted {d c t} (n) : Shifted (d + n) c t → Shifted d (c + n) t := by
   intros h
   match n, h with
@@ -156,8 +132,51 @@ theorem unshiftSubstSwap :
 theorem unshiftSubstSwap' :
   ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
 
+theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ c' d') = shiftₙ (c' + d) d' (shiftₙ c d t) := by
+  intros d c d' c' t p
+  match t with
+  | app l r => exact congrArg₂ Term.app (shiftShiftSwap d c d' c' l p) (shiftShiftSwap d c d' c' r p)
+  | Term.abs body =>
+      simp [shiftₙ]
+      rw [shiftShiftSwap d (c+1) d' (c'+1) body (Nat.add_le_add_right p 1)]
+      have eq : c' + 1 + d = c' + d + 1 := by linarith
+      rw [eq]
+  | var x => 
+      simp [shiftₙ]
+      by_cases h₁ : x < c' 
+  <;> by_cases h₂ : x < c 
+  <;> simp [h₁, h₂]
+      · have h₃ : x < c' + d := by linarith
+        simp [h₃]
+      all_goals by_cases h₃ : x + d' < c <;> simp [h₃]
+      · by_cases h₄ : x < c' + d <;> simp [h₄]
+        linarith
+      · by_cases h₄ : x < c' + d <;> simp [h₄] <;> linarith
+      · exfalso
+        apply h₂
+        exact Nat.lt_of_add_right_lt h₃
+      · linarith
+
 theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
-                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := sorry
+                  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := by
+  intros d c n p1 t1 t2
+  match t1 with
+  | var n' => 
+      simp [shiftₙ, sub]
+      by_cases h₁ : n' = n
+  <;> by_cases h₂ : n' < c
+  <;> by_cases h₃ : d = 0
+  <;> simp [p1, h₁, h₂, h₃, shiftₙ]
+      by_cases h₄ : n' = n + d <;> simp [h₄]
+      cases t2 <;> simp [shiftₙ]
+      case pos.var x => by_cases h₅ : x < c <;> simp [h₅] <;> linarith
+      all_goals (apply h₁; linarith)
+  | Term.abs t => 
+      refine congrArg Term.abs ?_
+      simp [sub]
+      rw [shiftShiftSwap 1 0 d c t2 (Nat.zero_le c), shiftSubstSwap' _ t (shiftₙ 0 1 t2), Nat.add_right_comm n 1 d]
+      linarith
+  | app l r => exact congrArg₂ app (shiftSubstSwap' p1 l t2) (shiftSubstSwap' p1 r t2)
 
 theorem substShiftedCancel :
   ∀ {d c n t1 t2}, c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
