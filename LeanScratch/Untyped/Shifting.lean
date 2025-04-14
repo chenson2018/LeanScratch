@@ -69,10 +69,6 @@ theorem shiftUnshiftSwap {d c d' c' t} :
            · linarith
            · rw [Nat.sub_add_comm p₁]
 
-theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
-                 shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
-
-
 theorem weakShifted {d c t} (n) : Shifted (d + n) c t → Shifted d (c + n) t := by
   intros h
   match n, h with
@@ -107,30 +103,6 @@ theorem betaShifted' (n t1 t2) : Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) :
         · cases Nat.lt_or_gt.mp h <;> rename_i h''
           · exact svar1 h'' 
           · exact False.elim (h' h'')
-
-theorem unshiftUnshiftSwap :
-  ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
-  unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := sorry
-
-theorem unshiftSubstSwap2 :
-  ∀ {d c n t1 t2}, n < c → Shifted d c t1 → Shifted d c t2 →
-  unshiftₙ c d (t1 [ n := t2 ]) = ((unshiftₙ c d t1) [ n := unshiftₙ c d t2 ]) := sorry
-
-theorem unshiftShiftSwap : ∀ {d c d' c' t}, c' ≤ c → Shifted d c t →
-                   shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
-
-theorem shiftShifted' :
-  ∀ {d c d' c' t}, c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
-
-theorem betaShifted2 : ∀ {d c n t1 t2}, Shifted d ((n+1)+c) t1 → Shifted d c t2 →
-               Shifted d (n + c) (unshiftₙ n 1 (t1 [ n := shiftₙ 0 (n+1) t2 ])) := sorry
-
-theorem unshiftSubstSwap :
-  ∀ {c n} t1 t2, c ≤ n → Shifted 1 c t1 →
-  unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := sorry
-
-theorem unshiftSubstSwap' :
-  ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
 
 theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ c' d') = shiftₙ (c' + d) d' (shiftₙ c d t) := by
   intros d c d' c' t p
@@ -178,8 +150,7 @@ theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
       linarith
   | app l r => exact congrArg₂ app (shiftSubstSwap' p1 l t2) (shiftSubstSwap' p1 r t2)
 
-theorem substShiftedCancel :
-  ∀ {d c n t1 t2}, c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
+theorem substShiftedCancel {d c n t1 t2} : c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
 
 theorem substSubstSwap :
   ∀ n m t1 t2 t3,
@@ -202,6 +173,33 @@ theorem substSubstSwap :
       rw [shiftAdd 1 (m+1) 0 t2, shiftAdd 1 (m+1) 0 t3, shiftAdd 1 (m+1) 0 (t2 [ n := t3 ])]
       rw [Nat.add_comm 1 (m + 1), Nat.add_right_comm (m + 1) n 1]
       exact eq 
+
+theorem shiftSubstSwap : ∀ {d c n}, n < c → ∀ t1 t2,
+                 shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
+
+theorem unshiftUnshiftSwap :
+  ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
+  unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := sorry
+
+theorem unshiftSubstSwap2 :
+  ∀ {d c n t1 t2}, n < c → Shifted d c t1 → Shifted d c t2 →
+  unshiftₙ c d (t1 [ n := t2 ]) = ((unshiftₙ c d t1) [ n := unshiftₙ c d t2 ]) := sorry
+
+theorem unshiftShiftSwap {d c d' c' t} : c' ≤ c → Shifted d c t →
+  shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
+
+theorem shiftShifted' :
+  ∀ {d c d' c' t}, c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
+
+theorem betaShifted2 : ∀ {d c n t1 t2}, Shifted d ((n+1)+c) t1 → Shifted d c t2 →
+               Shifted d (n + c) (unshiftₙ n 1 (t1 [ n := shiftₙ 0 (n+1) t2 ])) := sorry
+
+theorem unshiftSubstSwap :
+  ∀ {c n} t1 t2, c ≤ n → Shifted 1 c t1 →
+  unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := sorry
+
+theorem unshiftSubstSwap' :
+  ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
 
 -- the below are not used, partially equivalent to the above however
 -- Pierce definition 6.1.2
