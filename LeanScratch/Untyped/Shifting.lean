@@ -11,6 +11,15 @@ inductive Shifted : ℕ → ℕ → Term → Prop where
 
 open Shifted
 
+theorem shiftShifted (d c t) : Shifted d c (shiftₙ c d t) := by
+  revert c
+  induction t <;> intros c <;> simp [shiftₙ]
+  case var x =>
+    by_cases h : x < c <;> simp [h]
+    · exact svar1 h
+    · apply svar2 <;> linarith
+  all_goals constructor <;> aesop
+
 theorem shiftAdd (d d' c) (t : Term) : (t.shiftₙ c d').shiftₙ c d = t.shiftₙ c (d + d') := by
   revert c
   induction t <;> intros c
@@ -87,7 +96,20 @@ theorem shiftShiftSwap : ∀ d c d' c' t, c ≤ c' → shiftₙ c d (t.shiftₙ 
         apply h₂
         exact Nat.lt_of_add_right_lt h₃
       · linarith
-  
+ 
+theorem weakShifted {d c t} (n) : Shifted (d + n) c t → Shifted d (c + n) t := by
+  intros h
+  match n, h with
+  | 0, s => exact s
+  | _, svar1 p => constructor; linarith
+  | _, svar2 p1 p2 => apply svar2 <;> linarith
+  | _, sapp p1 p2 => exact sapp (weakShifted _ p1) (weakShifted _ p2)
+  | n+1, sabs p => 
+      refine sabs ?_
+      have eq : c + (n + 1) + 1 = c + 1 + (n + 1) := by linarith
+      rw [eq]
+      exact weakShifted _ p
+
 theorem betaShifted' (n t1 t2) : Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) := 
   match t1 with
   | app l r => sapp (betaShifted' n l t2) (betaShifted' n r t2)
@@ -98,8 +120,17 @@ theorem betaShifted' (n t1 t2) : Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) :
   | var n' => by
       simp [sub]
       by_cases h : n' = n <;> simp [h]
-      · sorry
-      · sorry
+      · have h' := shiftShifted (n+1) 0 t2
+        nth_rw 1 [Nat.add_comm] at h'
+        have h' := weakShifted _ h'
+        simp at h'
+        exact h'
+      · by_cases h' : n < n'
+        · refine svar2 h' ?_
+          exact Nat.one_le_of_lt h'
+        · cases Nat.lt_or_gt.mp h <;> rename_i h''
+          · exact svar1 h'' 
+          · exact False.elim (h' h'')
 
 theorem unshiftUnshiftSwap :
   ∀ {d c d' c' t}, c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
@@ -127,15 +158,6 @@ theorem unshiftSubstSwap' :
 
 theorem shiftSubstSwap' : ∀ {d c n}, c ≤ n → ∀ t1 t2,
                   shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n + d := shiftₙ c d t2 ]) := sorry
-
-theorem shiftShifted (d c t) : Shifted d c (shiftₙ c d t) := by
-  revert c
-  induction t <;> intros c <;> simp [shiftₙ]
-  case var x =>
-    by_cases h : x < c <;> simp [h]
-    · exact svar1 h
-    · apply svar2 <;> linarith
-  all_goals constructor <;> aesop
 
 theorem substShiftedCancel :
   ∀ {d c n t1 t2}, c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
