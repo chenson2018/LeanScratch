@@ -198,8 +198,17 @@ theorem unshiftSubstSwap :
   ∀ {c n} t1 t2, c ≤ n → Shifted 1 c t1 →
   unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := sorry
 
-theorem unshiftSubstSwap' :
-  ∀ {n} t1 t2, Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := sorry
+theorem shiftZero (c t) : t = shiftₙ c 0 t := by
+  revert c
+  induction t <;> simp [shiftₙ] <;> intros c
+  case abs t ih => exact ih (c + 1)
+  case app l r ih_l ih_r => exact ⟨ih_l c, ih_r c⟩
+
+theorem unshiftSubstSwap' {n} (t1 t2) :
+  Shifted 1 0 t1 → unshiftₙ 0 1 (t1 [ n+1 := shiftₙ 0 1 t2 ]) = ((unshiftₙ 0 1 t1) [ n := t2 ]) := by
+  intros p
+  rw [congrArg ((unshiftₙ 0 1 t1) [ n := · ]) (shiftZero 0 t2)]
+  exact unshiftSubstSwap t1 t2 (Nat.zero_le n) p
 
 -- the below are not used, partially equivalent to the above however
 -- Pierce definition 6.1.2
