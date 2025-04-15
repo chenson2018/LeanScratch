@@ -216,7 +216,18 @@ theorem betaShifted2 {d c n} {t1 t2 : Term T} :
         by_cases h₂ : n' < n <;> simp [h₂]
         · apply svar1
           exact Nat.lt_add_right c h₂
-        · sorry
+        · have h₃ : n < n' := by
+            have tri := Nat.lt_trichotomy n n'
+            cases tri
+            assumption
+            case inr h => cases h <;> aesop
+          cases s
+          case neg.svar1 p3 =>
+            apply svar1
+            apply Nat.sub_lt_left_of_lt_add 
+            exact Nat.one_le_of_lt h₃
+            linarith
+          case neg.svar2 p3 p4 => sorry
   | _, sapp sl sr => exact sapp (betaShifted2 sl s2) (betaShifted2 sr s2)
   | _, sabs s => 
       simp [sub, unshiftₙ]
