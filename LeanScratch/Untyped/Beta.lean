@@ -21,7 +21,7 @@ mutual
 end
 
 inductive Progress (M : Term T) : Prop
-| step {N} : (M →β N) → Progress M
+| step {N} : (M ⇢β N) → Progress M
 | done     : Normalized M → Progress M
 
 open Progress Normalized Neutral Step_R in
@@ -51,7 +51,7 @@ theorem progress (M : Term T) : Progress M := by
            | done norm_r => done (of_neutral (app_norm (of_const m) norm_r))
 
 -- equivalent to the way it's stated in Software Foundations
-theorem progress' (M : Term T) : Normalized M ∨ (∃ M', M →β M') := by
+theorem progress' (M : Term T) : Normalized M ∨ (∃ M', M ⇢β M') := by
   induction (progress M)
   case done norm =>
     left

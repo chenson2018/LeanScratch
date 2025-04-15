@@ -39,7 +39,7 @@ theorem para_shift {c d : ℕ} {M M' : Term T} : (M ⇉ M') → (M.shiftₙ c d 
     all_goals linarith
   case const m => rfl
 
-lemma step_to_para {M N : Term T} (step : M →β N) : (M ⇉ N) := by
+lemma step_to_para {M N : Term T} (step : M ⇢β N) : (M ⇉ N) := by
   induction step 
   case' reduce => rename_i r; cases r
   all_goals apply_rules [Parallel.app, Parallel.abs, Parallel.beta, Parallel.refl, step_to_para] 
@@ -73,7 +73,7 @@ theorem parachain_iff_redex {M N : Term T} : (M ⇉* N) ↔ (M ↠β N) := by
   case chain_to_redex.tail para  redex => exact Relation.ReflTransGen.trans redex (para_to_redex para)
 
 open Shifted Step_R in
-theorem beta_shift_conserve  : ∀ {d c} {t1 t2 : Term T}, (t1 →β t2) → Shifted d c t1 → Shifted d c t2 := by
+theorem beta_shift_conserve  : ∀ {d c} {t1 t2 : Term T}, (t1 ⇢β t2) → Shifted d c t1 → Shifted d c t2 := by
   intros d c t1 t2 step s
   match step, s with
   | ξ  p, sabs s1 => exact sabs (beta_shift_conserve p s1)

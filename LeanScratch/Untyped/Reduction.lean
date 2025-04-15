@@ -11,8 +11,8 @@ inductive Step_R (R : Term T → Term T → Prop) : Term T → Term T → Prop
 | ξᵣ     {M N Z} : Step_R R M N → Step_R R (app M Z) (app N Z)
 | ξ      {M N}   : Step_R R M N → Step_R R (abs M)   (abs N) 
 
-notation:39 t " →" R:arg t' => Step_R                        R    t t'
-notation:39 t " ↠" R:arg t' => Relation.ReflTransGen (Step_R R)   t t'
+notation:39 t " ⇢" R:arg t' => Step_R                        R  t t'
+notation:39 t " ↠" R:arg t' => Relation.ReflTransGen (Step_R R) t t'
 
 -- leaving this one for notation purposes...
 @[simp]
