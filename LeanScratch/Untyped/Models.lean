@@ -1,15 +1,87 @@
 import LeanScratch.Untyped.Basic
+import LeanScratch.Untyped.Shifting
+import LeanScratch.Untyped.Reduction
+import LeanScratch.Untyped.Beta
 
-inductive AppTerm (M : Type)
-| const (m : M) : AppTerm M
-| var (x : ℕ) : AppTerm M
-| app (l r : AppTerm M) : AppTerm M
+def val_shift {M} (ρ : ℕ → M) (x' : ℕ) (a : M) : ℕ → M := λ x ↦ if x' = x then a else ρ x
 
-open AppTerm
+class SyntaxAppStruct (M : Type) [Mul M] where
+  interp : Term M → (ℕ → M) → M
 
-instance (M : Type) : Mul (AppTerm M) where
-  mul l r := app l r
+notation:90 "⟦" t "⟧" ρ:arg => SyntaxAppStruct.interp t ρ
 
+-- TODO: did I quantify ρ correctly here???
+open Term in
+class SyntaxApp (M : Type) [Mul M] extends SyntaxAppStruct M where
+  interp_var   (ρ : ℕ → M) (x : ℕ) : ⟦var x⟧ρ = ρ x
+  interp_const (ρ : ℕ → M) (m : M) : ⟦const m⟧ρ = m
+  interp_app   (ρ : ℕ → M) (P Q)   : ⟦app P Q⟧ρ = ⟦P⟧ρ * ⟦Q⟧ρ
+  -- TODO: not sure about shifting
+  interp_abs   (ρ : ℕ → M) (P m)   : ⟦{{{ λ . ~P }}}⟧ρ * m = ⟦P⟧(val_shift ρ 0 m)
+  -- TODO a condition about free variables...
+  interp_free  (ρ ρ' : ℕ → M) (P)  : ρ = ρ' → ⟦P⟧ρ = ⟦P⟧ρ'
+
+def Term.sat_under (M) [Mul M] [SyntaxApp M] (A B : Term M) (ρ : ℕ → M) := ⟦ A ⟧ ρ = ⟦ B ⟧ ρ 
+def Term.sat (M) [Mul M] [SyntaxApp M] (A B : Term M) := ∀ ρ, ⟦ A ⟧ ρ = ⟦ B ⟧ ρ
+
+notation:100 M ",," ρ:arg " ⊨ " A " ~ " B => Term.sat_under M A B ρ
+notation:100 M " ⊨ " A " ~ " B:arg => Term.sat M A B
+
+class SyntaxAlg (M : Type) [Mul M] extends SyntaxApp M where
+  beta_sat (P Q : Term M) : P ≈β Q → M ⊨ P ~ Q
+
+class SyntaxModel (M : Type) [Mul M] extends SyntaxApp M where
+  -- TODO : shifting!
+  ξ (P Q : Term M) (m : M) (ρ) : ⟦P⟧ρ = ⟦Q⟧ρ → ⟦{{{ λ . ~P}}}⟧ρ  = ⟦{{{ λ . ~Q}}}⟧ρ
+
+class CPO_Reflexive (D: Type) [OmegaCompletePartialOrder D] (F : D → (D →𝒄 D)) (G : (D →𝒄 D) → D) where
+  reflexive : G ∘ F = id
+
+def Term.to_cpo 
+  {D : Type}
+  [OmegaCompletePartialOrder D]
+  (F : D → (D →𝒄 D))
+  (G : (D →𝒄 D) → D)
+  [CPO_Reflexive D F G]
+  [Mul D]
+  (t : Term D)
+  (ρ : ℕ → D)
+  : D
+  := 
+  match t with
+  | const d => d
+  | var x => ρ x
+  | app l r => (l.to_cpo F G ρ) * (r.to_cpo F G ρ)
+  | abs M => (G {toFun := (λ d ↦ M.to_cpo F G (val_shift ρ 0 d)), monotone' := sorry, map_ωSup' := sorry})
+
+set_option synthInstance.checkSynthOrder false in
+instance (D : Type) [OmegaCompletePartialOrder D] (F G) [CPO_Reflexive D F G] [Mul D] : SyntaxModel D where
+  interp := Term.to_cpo F G
+  interp_var := sorry
+  interp_const := sorry
+  interp_app := sorry
+  interp_abs := sorry
+  interp_free := sorry
+  ξ := sorry
+
+-- below is the combinator approach earlier in the chapter I did first the above
+-- "syntactical" approach seems cleaner, so I might just delete it eventually
+-- the above still does not cover the general ccc construction
+-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+
+-- inductive AppTerm (M : Type)
+-- | const (m : M) : AppTerm M
+-- | var (x : ℕ) : AppTerm M
+-- | app (l r : AppTerm M) : AppTerm M
+-- 
+-- open AppTerm
+-- 
+-- instance (M : Type) : Mul (AppTerm M) where
+--   mul l r := app l r
+
+/-
 -- should try the new binding change to implicit here...
 def AppTerm.val {M} [Mul M] (t : AppTerm M) (ρ : ℕ → M) : M := 
   match t with
@@ -193,3 +265,4 @@ instance {D : Type} [cpo : OmegaCompletePartialOrder D] (F G) [CPO_Reflexive D F
 
 -- TODO: the last part here is "arbitrary" CCCs with reflexive objects
 -- going to wait until the above is settled to try stating it
+-/
