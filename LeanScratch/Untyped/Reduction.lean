@@ -17,7 +17,7 @@ notation:39 t " ↠" R:arg t' => Relation.ReflTransGen (Step_R R) t t'
 -- leaving this one for notation purposes...
 @[simp]
 def Equality_R  (R : Term T → Term T → Prop) := Relation.EqvGen (Step_R R)
-notation:39 t " =" R:arg t' => Equality_R  R t t'
+notation:39 t " ≈" R:arg t':arg => Equality_R  R t t'
 
 -- some congruence lemmas about reduction
 theorem app_l_cong {M M' N} {R : Term T → Term T → Prop} : (M ↠R M') → (app M N ↠R app M' N) := by
