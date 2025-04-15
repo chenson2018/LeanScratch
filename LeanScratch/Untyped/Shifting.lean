@@ -158,7 +158,17 @@ theorem shiftSubstSwap' {d c n} (p1 : c ≤ n) (t1 t2 : Term T) :
       linarith
   | app l r => exact congrArg₂ app (shiftSubstSwap' p1 l t2) (shiftSubstSwap' p1 r t2)
 
-theorem substShiftedCancel {d c n} {t1 t2 : Term T} : c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := sorry
+theorem substShiftedCancel {d c n} {t1 t2 : Term T} : c ≤ n → n < c + d → Shifted d c t1 → t1 = (t1 [ n := t2 ]) := by
+  intros p1 p2 p3
+  match t1, p3 with
+  | var n', svar1 _ | var n', svar2 _ _ => by_cases p₄ : n' = n <;> simp [sub, p₄]; linarith
+  | _, sapp p3 p4 => 
+      simp [sub]
+      exact ⟨substShiftedCancel p1 p2 p3, substShiftedCancel p1 p2 p4⟩
+  | const _, _ => rfl
+  | _, sabs p3 =>
+      simp [sub]
+      refine substShiftedCancel ?_ ?_ p3 <;> linarith
 
 theorem substSubstSwap (n m) (t1 t2 t3 : Term T) :
   (t1 [ m := shiftₙ 0 (m+1) t2 ] [ (m+1) + n := shiftₙ 0 (m+1) t3 ]) =
