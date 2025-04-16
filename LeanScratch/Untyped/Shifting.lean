@@ -191,8 +191,28 @@ theorem substSubstSwap (n m) (t1 t2 t3 : Term T) :
       rw [Nat.add_comm 1 (m + 1), Nat.add_right_comm (m + 1) n 1]
       exact eq 
 
-theorem shiftSubstSwap {d c n} (p1 : n < c) (t1 t2 : Term T) :
-  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := sorry
+theorem shiftSubstSwap {d c n} (p : n < c) (t1 t2 : Term T) :
+  shiftₙ c d (t1 [ n := t2 ]) = ((shiftₙ c d t1) [ n := shiftₙ c d t2 ]) := by
+  match t1 with
+  | const _ => rfl
+  | app l r => 
+      simp [sub, shiftₙ]
+      exact ⟨shiftSubstSwap p l t2, shiftSubstSwap p r t2⟩
+  | Term.abs t1 =>
+      simp [sub, shiftₙ]
+      rw [shiftShiftSwap _ _ _ _ _ (by linarith)]
+      exact shiftSubstSwap (by linarith) t1 (shiftₙ 0 1 t2)
+  | var n' =>
+      simp [sub, shiftₙ]
+      by_cases p₁ : n' = n <;> simp [p₁, shiftₙ]
+      · by_cases p₂ : n < c <;> simp [p₁, p₂]
+        simp_all
+      · by_cases p₂ : n' < c 
+    <;> by_cases p₃ : n' + d = n
+    <;> cases t2
+    <;> simp [p₁, p₂, p₃, shiftₙ]
+        case pos.var x => by_cases p₄ : x < c <;> simp [p₄] <;> linarith
+        all_goals (apply p₂; linarith)
 
 theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
   unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := sorry
