@@ -218,26 +218,19 @@ theorem betaShifted2 {d c n} {t1 t2 : Term T} :
   | const _, _ => constructor
   | var n', s =>
       simp [sub]
-      by_cases h₁ : n' = n <;> simp [h₁]
+      by_cases p₁ : n' = n <;> simp [p₁]
       · nth_rw 2 [Nat.add_comm]
         rw [unshiftShiftSetoff t2 (by linarith) (by linarith)]
         exact shiftShifted' (by linarith) s2
       · simp [unshiftₙ]
-        by_cases h₂ : n' < n <;> simp [h₂]
-        · apply svar1
-          exact Nat.lt_add_right c h₂
-        · have h₃ : n < n' := by
-            have tri := Nat.lt_trichotomy n n'
-            cases tri
-            assumption
-            case inr h => cases h <;> aesop
-          cases s
-          case neg.svar1 p3 =>
-            apply svar1
-            apply Nat.sub_lt_left_of_lt_add 
-            exact Nat.one_le_of_lt h₃
-            linarith
-          case neg.svar2 p3 p4 => sorry
+        by_cases p₂ : n' < n <;> simp [p₂]
+        · exact svar1 $ Nat.lt_add_right c p₂
+        · cases n' <;> cases n <;> cases s <;> simp
+          case neg.succ.zero.svar2 => exact svar2 (by linarith) (by linarith)
+          case neg.succ.succ.svar2 => exact svar2 (by linarith) (by linarith)
+          exact False.elim (p₁ rfl)
+          exact False.elim (p₁ rfl)
+          all_goals exact svar1 (by linarith)
   | _, sapp sl sr => exact sapp (betaShifted2 sl s2) (betaShifted2 sr s2)
   | _, sabs s => 
       simp [sub, unshiftₙ]
