@@ -215,7 +215,26 @@ theorem shiftSubstSwap {d c n} (p : n < c) (t1 t2 : Term T) :
         all_goals (apply p₂; linarith)
 
 theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c' t → Shifted d c (unshiftₙ c' d' t) →
-  unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := sorry
+  unshiftₙ c d (unshiftₙ c' d' t) = unshiftₙ c' d' (unshiftₙ (c + d') d t) := by
+  intros p1 p2 p3
+  match t, p2, p3 with
+  | var n, s, s' => 
+      simp [unshiftₙ] at *
+      by_cases p₄ : n < c' <;> simp [p₄]
+      · by_cases p₅ : n < c + d' <;> simp [p₄, p₅]
+        · intros h
+          linarith
+        · have p₆ : n - d < c' := by linarith
+          simp [p₆]
+          intros h
+          linarith
+      · sorry
+  | const _, _, _ => rfl
+  | _, sapp l r, sapp l' r' => exact congrArg₂ app (unshiftUnshiftSwap p1 l l') (unshiftUnshiftSwap p1 r r')
+  | _, sabs t, sabs t' => 
+      refine congrArg Term.abs ?_
+      rw [Nat.add_right_comm c d' 1]
+      exact unshiftUnshiftSwap (by linarith) t t'
 
 theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
   n < c → Shifted d c t1 → Shifted d c t2 →
