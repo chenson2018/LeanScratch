@@ -220,15 +220,34 @@ theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c'
   match t, p2, p3 with
   | var n, s, s' => 
       simp [unshiftₙ] at *
-      by_cases p₄ : n < c' <;> simp [p₄]
-      · by_cases p₅ : n < c + d' <;> simp [p₄, p₅]
-        · intros h
+      by_cases p4 : n < c' <;> by_cases p5 : n < c + d' <;> simp [p4] at s'
+      · by_cases p6 : n - d' < c <;> by_cases p7 : n - d < c' <;> simp [p4, p5, p6, p7] <;> intros
+        · linarith
+        · cases s'
+          case neg.svar1 p8 => linarith
+          case neg.svar2 p8 p9 =>
+            exfalso
+            apply p7
+            exact tsub_lt_of_lt p4
+        · linarith
+        · linarith
+      · by_cases p6 : n < c' <;> by_cases p7 : n - d' < c <;> simp [p4, p5, p6, p7]
+        · cases s' <;> exfalso <;> linarith
+        · sorry
+        · sorry
+        · sorry
+      · by_cases p6 : n < c <;> by_cases p7 : n - d < c' <;> simp [p4, p5, p6, p7]
+        · sorry
+        · sorry
+        · sorry
+        · sorry
+      · by_cases p6 : n < c' <;> by_cases p7 : n < c <;> simp [p4, p5, p6, p7]
+        · exfalso; exact p4 p6
+        · exfalso; exact p4 p6
+        · exfalso
+          apply p4
           linarith
-        · have p₆ : n - d < c' := by linarith
-          simp [p₆]
-          intros h
-          linarith
-      · sorry
+        · sorry
   | const _, _, _ => rfl
   | _, sapp l r, sapp l' r' => exact congrArg₂ app (unshiftUnshiftSwap p1 l l') (unshiftUnshiftSwap p1 r r')
   | _, sabs t, sabs t' => 
