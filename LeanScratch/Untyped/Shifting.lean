@@ -402,7 +402,33 @@ theorem unshiftSubstSwap {c n} (t1 t2 : Term T) : c ≤ n → Shifted 1 c t1 →
   unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := by
   intros p1 p2
   match t1, p2 with
-  | var _, _ => sorry
+  | var n', s => 
+      simp [unshiftₙ, sub]
+      rw [if_lt_le]
+      by_cases p3 : n' = n + 1 <;> by_cases p4 : c ≤ n' <;> simp [p3, p4] 
+      · by_cases p5 : n = n' - 1
+        · have h : c ≤ n + 1 := by linarith
+          simp [h]
+          rw [Nat.add_comm]
+          refine unshiftShiftSetoff t2 ?_ ?_ <;> linarith
+        · exfalso; apply p5; exact Nat.eq_sub_of_add_eq (id (Eq.symm p3))
+      · have h : c ≤ n + 1 := by linarith
+        aesop
+      · simp [unshiftₙ]
+        rw [if_lt_le]
+        simp [p4]
+        by_cases p6 : n' - 1 = n <;> simp [p6]
+        cases s <;> exfalso
+        · apply Nat.not_succ_le_self n' 
+          linarith
+        · apply p3
+          refine (Nat.sub_eq_iff_eq_add ?_).mp p6
+          assumption
+      · simp [unshiftₙ]
+        rw [if_lt_le]
+        simp [p4]
+        by_cases p6 : n' = n <;> simp [p6]
+        linarith
   | const _, _ => rfl
   | Term.abs t1, sabs p2 => 
       refine congrArg Term.abs ?_
