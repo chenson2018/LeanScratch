@@ -352,11 +352,18 @@ theorem unshiftShiftSetoff {d c d' c'} (t : Term T) :
   match t with
   | var n => 
       simp [shiftₙ, unshiftₙ]
-      by_cases p3 : n < c <;> simp [p3]
-      · intros; linarith
-      · by_cases p4 : n + (d' + d) < c' <;> simp [p4]
-        · linarith
-        · sorry
+      rw [if_lt_le n c]
+      by_cases p3 : c ≤ n <;> simp [p3]
+      · rw [if_lt_le]
+        by_cases p4 : c' ≤ (n + (d' + d)) <;> simp [p4]
+        · rw [if_lt_le]
+          simp [p3]
+          omega
+        · omega
+      · rw [if_lt_le n c]
+        simp [p3]
+        intros
+        linarith
   | const _ => rfl
   | app t1 t2 => exact congrArg₂ app (unshiftShiftSetoff t1 p1 p2) (unshiftShiftSetoff t2 p1 p2)
   | Term.abs t => exact congrArg Term.abs $ unshiftShiftSetoff t (by linarith) (by linarith)
