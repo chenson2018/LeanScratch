@@ -256,7 +256,16 @@ theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c'
       exact unshiftUnshiftSwap (by linarith) t t'
 
 theorem unshiftShiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d c t →
-  shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
+  shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := by
+  intros p s 
+  match t, s with
+  | var _, _ => sorry
+  | _, sabs s1 => 
+      refine congrArg Term.abs ?_
+      rw [Nat.add_right_comm c d' 1]
+      refine unshiftShiftSwap (by linarith) s1
+  | _, sapp s1 s2 => exact congrArg₂ app (unshiftShiftSwap p s1) (unshiftShiftSwap p s2)
+  | const _, _ => rfl
 
 theorem shiftShifted' {d c d' c'} {t : Term T} : c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := by
   intros p s
