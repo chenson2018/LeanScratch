@@ -282,7 +282,19 @@ theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
   | const _, _ => rfl
 
 theorem unshiftShiftSetoff {d c d' c'} (t : Term T) : 
-  c ≤ c' → c' ≤ d' + d + c → unshiftₙ c' d' (shiftₙ c (d' + d) t) = shiftₙ c d t := sorry
+  c ≤ c' → c' ≤ d' + d + c → unshiftₙ c' d' (shiftₙ c (d' + d) t) = shiftₙ c d t := by
+  intros p1 p2
+  match t with
+  | var n => 
+      simp [shiftₙ, unshiftₙ]
+      by_cases p3 : n < c <;> simp [p3]
+      · intros; linarith
+      · by_cases p4 : n + (d' + d) < c' <;> simp [p4]
+        · linarith
+        · sorry
+  | const _ => rfl
+  | app t1 t2 => exact congrArg₂ app (unshiftShiftSetoff t1 p1 p2) (unshiftShiftSetoff t2 p1 p2)
+  | Term.abs t => exact congrArg Term.abs $ unshiftShiftSetoff t (by linarith) (by linarith)
 
 theorem betaShifted2 {d c n} {t1 t2 : Term T} : 
   Shifted d ((n+1)+c) t1 → 
