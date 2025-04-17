@@ -353,9 +353,20 @@ theorem betaShifted2 {d c n} {t1 t2 : Term T} :
       rw [shiftAdd 1 (n+1) 0 t2, Nat.add_right_comm n c 1, Nat.add_comm 1 (n + 1)]
       exact betaShifted2 s s2
 
-theorem unshiftSubstSwap :
-  ∀ {c n} (t1 t2 : Term T), c ≤ n → Shifted 1 c t1 →
-  unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := sorry
+theorem unshiftSubstSwap {c n} (t1 t2 : Term T) : c ≤ n → Shifted 1 c t1 →
+  unshiftₙ c 1 (t1 [ n+1 := shiftₙ 0 (c+1) t2 ]) = ((unshiftₙ c 1 t1) [ n := shiftₙ 0 c t2 ]) := by
+  intros p1 p2
+  match t1, p2 with
+  | var _, _ => sorry
+  | const _, _ => rfl
+  | Term.abs t1, sabs p2 => 
+      refine congrArg Term.abs ?_
+      simp [shift]
+      rw [shiftAdd 1 (c+1) 0 t2, shiftAdd 1 c 0 t2, Nat.add_comm 1 (c + 1), Nat.add_comm 1 c]
+      exact unshiftSubstSwap t1 t2 (by linarith) p2
+  | app l r, sapp p2 p3 => 
+      simp [sub, unshiftₙ]
+      exact ⟨unshiftSubstSwap l t2 p1 p2, unshiftSubstSwap r t2 p1 p3⟩
 
 theorem shiftZero (c) (t : Term T) : t = shiftₙ c 0 t := by
   revert c
