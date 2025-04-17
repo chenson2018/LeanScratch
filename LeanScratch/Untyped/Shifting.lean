@@ -258,7 +258,25 @@ theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c'
 theorem unshiftShiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d c t →
   shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
 
-theorem shiftShifted' {d c d' c'} {t : Term T} : c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
+theorem shiftShifted' {d c d' c'} {t : Term T} : c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := by
+  intros p s
+  match t, s with
+  | const _, _ => simp [shiftₙ]; constructor
+  | var n, svar1 p2 => 
+      by_cases p1 : n < c' <;> apply svar1 <;> simp [p1]
+      · exact Nat.lt_add_left d' p2
+      · linarith
+  | var n, svar2 p2 p3 =>
+      by_cases p1 : n < c' <;> apply svar1 <;> simp [p1]
+      · linarith
+      · exfalso
+        apply p1
+        sorry
+  | _, sapp s1 s2 => exact sapp (shiftShifted' p s1) (shiftShifted' p s2)
+  | Term.abs t1, sabs s1 =>
+      refine sabs ?_
+      rw [Nat.add_assoc]
+      exact shiftShifted' (by linarith) s1
 
 theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
   n < c → Shifted d c t1 → Shifted d c t2 →
