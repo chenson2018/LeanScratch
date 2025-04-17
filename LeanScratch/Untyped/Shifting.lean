@@ -255,14 +255,31 @@ theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c'
       rw [Nat.add_right_comm c d' 1]
       exact unshiftUnshiftSwap (by linarith) t t'
 
-theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
-  n < c → Shifted d c t1 → Shifted d c t2 →
-  unshiftₙ c d (t1 [ n := t2 ]) = ((unshiftₙ c d t1) [ n := unshiftₙ c d t2 ]) := sorry
-
 theorem unshiftShiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d c t →
   shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := sorry
 
 theorem shiftShifted' {d c d' c'} {t : Term T} : c' ≤ d + c → Shifted d c t → Shifted d (d' + c) (shiftₙ c' d' t) := sorry
+
+theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
+  n < c → Shifted d c t1 → Shifted d c t2 →
+  unshiftₙ c d (t1 [ n := t2 ]) = ((unshiftₙ c d t1) [ n := unshiftₙ c d t2 ]) := by
+  intros p s1 s2
+  match t1, s1 with
+  | var n', s => 
+      simp [sub, unshiftₙ]
+      by_cases p1 : n' = n <;> by_cases p2 : n' < c <;> simp [p1, p2, unshiftₙ]
+      · aesop
+      · aesop
+      · sorry
+  | _, sapp l r => exact congrArg₂ app (unshiftSubstSwap2 p l s2) (unshiftSubstSwap2 p r s2)
+  | _, sabs s1 =>
+      refine congrArg Term.abs ?_
+      simp [sub, unshiftₙ]
+      rw [unshiftShiftSwap (Nat.zero_le c) s2]
+      refine unshiftSubstSwap2 (Nat.add_lt_add_right p 1) s1 ?_ 
+      rw [Nat.add_comm]
+      refine shiftShifted' (by linarith) s2
+  | const _, _ => rfl
 
 theorem unshiftShiftSetoff {d c d' c'} (t : Term T) : 
   c ≤ c' → c' ≤ d' + d + c → unshiftₙ c' d' (shiftₙ c (d' + d) t) = shiftₙ c d t := sorry
