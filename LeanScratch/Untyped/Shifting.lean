@@ -320,10 +320,22 @@ theorem unshiftSubstSwap2 {d c n} {t1 t2 : Term T} :
   match t1, s1 with
   | var n', s => 
       simp [sub, unshiftₙ]
-      by_cases p1 : n' = n <;> by_cases p2 : n' < c <;> simp [p1, p2, unshiftₙ]
+      rw [if_lt_le n' c]  
+      by_cases p1 : n' = n <;> by_cases p2 : c ≤ n' <;> simp [p1, p2, unshiftₙ]
+      · linarith
       · aesop
-      · aesop
-      · sorry
+      · rw [if_lt_le n' c]
+        simp [p2]
+        by_cases p3 : c ≤ n' <;> by_cases p4 : n' - d = n <;> simp [p3, p4]
+        · cases s <;> exfalso
+          case pos.svar1 => linarith
+          case pos.svar2 p5 p6 =>
+            apply Nat.not_succ_le_self n'
+            calc
+              n' + 1 ≤ (n+d)+1 := by rw [(Nat.sub_eq_iff_eq_add p5).mp p4 ]
+              _      ≤ c + d   := by linarith
+              _      ≤ n'      := p6
+        · linarith
   | _, sapp l r => exact congrArg₂ app (unshiftSubstSwap2 p l s2) (unshiftSubstSwap2 p r s2)
   | _, sabs s1 =>
       refine congrArg Term.abs ?_
