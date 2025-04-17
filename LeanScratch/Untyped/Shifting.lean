@@ -304,11 +304,9 @@ theorem shiftShifted' {d c d' c'} {t : Term T} : c' ≤ d + c → Shifted d c t 
       · exact Nat.lt_add_left d' p2
       · linarith
   | var n, svar2 p2 p3 =>
-      by_cases p1 : n < c' <;> apply svar1 <;> simp [p1]
+      by_cases p1 : c' ≤ n
+      · refine svar2 ?_ ?_ <;> rw [if_lt_le n c'] <;> simp [p1] <;> linarith
       · linarith
-      · exfalso
-        apply p1
-        sorry
   | _, sapp s1 s2 => exact sapp (shiftShifted' p s1) (shiftShifted' p s2)
   | Term.abs t1, sabs s1 =>
       refine sabs ?_
