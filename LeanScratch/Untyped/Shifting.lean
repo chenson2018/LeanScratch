@@ -266,7 +266,28 @@ theorem unshiftShiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d c t �
   shiftₙ c' d' (unshiftₙ c d t) = unshiftₙ (c + d') d (shiftₙ c' d' t) := by
   intros p s 
   match t, s with
-  | var _, _ => sorry
+  | var n, s => 
+      simp [unshiftₙ, shiftₙ]
+      rw [if_lt_le n c, if_lt_le n c']
+      by_cases p1 : c ≤ n <;> by_cases p2 : c' ≤ n <;> simp [p1, p2]
+      · rw [if_lt_le (n - d) c']
+        cases s
+        case pos.svar1 => exfalso; linarith
+        case pos.svar2 p5 p6 => 
+        by_cases p3 : c' ≤ n - d <;> by_cases p4 : c + d' ≤ n + d' <;> rw [if_lt_le n c] <;> simp [p1, p3]
+        · symm
+          exact Nat.sub_add_comm p5
+        · linarith
+        · exfalso; apply p3
+          trans
+          exact p
+          exact Nat.le_sub_of_add_le p6
+        · linarith
+      · linarith
+      · rw [if_lt_le n c, if_lt_le n c']
+        simp [p1, p2]
+      · have h : n < c + d' := by linarith
+        simp [p2, h]
   | _, sabs s1 => 
       refine congrArg Term.abs ?_
       rw [Nat.add_right_comm c d' 1]
