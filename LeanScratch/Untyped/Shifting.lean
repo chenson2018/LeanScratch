@@ -2,6 +2,15 @@ import LeanScratch.Untyped.Basic
 
 open Term
 
+theorem if_lt_le (n c: ℕ) {X : Type} (x x' : X) : (if n < c then x else x') = (if c ≤ n then x' else x) := by 
+  by_cases h : c = n
+  · simp [h]
+  · by_cases h' : n < c <;> simp [h']
+    · have h'' : ¬c ≤ n := by linarith
+      simp [h'']
+    · have h'' : c ≤ n := by linarith 
+      simp [h'']
+
 variable {T : Type}
 
 -- directly translated from: https://github.com/pi8027/lambda-calculus/blob/master/agda/Lambda/Confluence.agda
@@ -220,34 +229,32 @@ theorem unshiftUnshiftSwap {d c d' c'} {t : Term T} : c' ≤ c → Shifted d' c'
   match t, p2, p3 with
   | var n, s, s' => 
       simp [unshiftₙ] at *
-      by_cases p4 : n < c' <;> by_cases p5 : n < c + d' <;> simp [p4] at s'
-      · by_cases p6 : n - d' < c <;> by_cases p7 : n - d < c' <;> simp [p4, p5, p6, p7] <;> intros
-        · linarith
-        · cases s'
-          case neg.svar1 p8 => linarith
+      rw [if_lt_le n c', if_lt_le n (c + d')]
+      rw [if_lt_le n c'] at s'
+      by_cases p4 : c' ≤ n <;> by_cases p5 : c + d' ≤  n <;> simp [p4] at s' <;> simp [p4, p5]
+      · rw [if_lt_le (n - d') c, if_lt_le (n - d) c']
+        by_cases p6 : c ≤ n - d' <;> by_cases p7 : c' ≤ n - d <;> simp [p6, p7]
+        · exact Nat.sub_right_comm n d' d
+        · cases s' <;> exfalso
+          case neg.svar1 => linarith
           case neg.svar2 p8 p9 =>
-            exfalso
             apply p7
-            exact tsub_lt_of_lt p4
-        · linarith
-        · linarith
-      · by_cases p6 : n < c' <;> by_cases p7 : n - d' < c <;> simp [p4, p5, p6, p7]
-        · cases s' <;> exfalso <;> linarith
-        · sorry
-        · sorry
-        · sorry
-      · by_cases p6 : n < c <;> by_cases p7 : n - d < c' <;> simp [p4, p5, p6, p7]
-        · sorry
-        · sorry
-        · sorry
-        · sorry
-      · by_cases p6 : n < c' <;> by_cases p7 : n < c <;> simp [p4, p5, p6, p7]
-        · exfalso; exact p4 p6
-        · exfalso; exact p4 p6
-        · exfalso
-          apply p4
-          linarith
-        · sorry
+            calc
+              c' ≤ c           := p1
+              _  ≤ n - d' - d  := Nat.le_sub_of_add_le p9
+              _  ≤ n - d  - d' := by rw [Nat.sub_right_comm n d' d ]
+              _  ≤ n - d       := Nat.sub_le (n - d) d'
+        all_goals exfalso; apply p6; exact Nat.le_sub_of_add_le p5
+      · rw [if_lt_le, if_lt_le]
+        by_cases p6 : c' ≤ n <;> by_cases p7 : c ≤ n - d' <;> simp [p6, p7] <;> exfalso
+        · cases s
+          case pos.svar1 => linarith
+          case pos.svar2 p8 p9 => 
+            apply p5
+            exact Nat.add_le_of_le_sub p8 p7
+        all_goals exact p6 p4
+      · by_cases p6 :  n < c <;> by_cases p7 : n - d < c' <;> simp [p6, p7] <;> exfalso <;> linarith
+      · by_cases p6 :  n < c <;> by_cases p7 :  n < c' <;> simp [p6, p7] <;> linarith
   | const _, _, _ => rfl
   | _, sapp l r, sapp l' r' => exact congrArg₂ app (unshiftUnshiftSwap p1 l l') (unshiftUnshiftSwap p1 r r')
   | _, sabs t, sabs t' => 
