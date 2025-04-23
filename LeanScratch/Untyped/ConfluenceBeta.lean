@@ -134,13 +134,7 @@ theorem sub_para {x : ℕ} {N N' M M' : Term T} : (N ⇉ N') → (M ⇉ M') → 
       by_cases eq : x = x' <;> simp [eq]
       · exact M_M'
       · rfl
-  | Parallel.app l r =>
-      apply Parallel.app
-      apply sub_para l
-      exact M_M'
-      apply sub_para
-      exact r
-      exact M_M'
+  | Parallel.app l r => exact Parallel.app (sub_para l M_M') (sub_para r M_M')
   | @Parallel.beta _ X W Y Z r2 r1 => 
       simp_rw [shift, unshift, ←unshiftSubstSwap' _ _ (betaShifted' 0 Z W), Nat.add_comm x 1, substSubstSwap x 0 Z W M']
       refine Parallel.beta (sub_para r2 M_M') ?_
