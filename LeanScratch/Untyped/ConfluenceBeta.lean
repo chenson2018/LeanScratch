@@ -81,8 +81,7 @@ theorem beta_shift_conserve  : ∀ {d c} {t1 t2 : Term T}, (t1 ⇢β t2) → Shi
   | ξᵣ p, sapp s1 s2 => exact sapp (beta_shift_conserve p s1) s2
   | reduce (β.reduce), (sapp (sabs s1) s2) => 
       have bs := @betaShifted2 T d c 0
-      simp at bs
-      rw [Nat.add_comm] at bs
+      simp_rw [Nat.add_comm] at bs
       exact bs s1 s2
 
 theorem redex_shift_conserve : ∀ {d c} {t1 t2 : Term T}, (t1 ↠β t2) → Shifted d c t1 → Shifted d c t2 := by
