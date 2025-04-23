@@ -154,10 +154,7 @@ theorem para_tri {M N : Term T} (para : M ⇉ N) : (N ⇉ M.plus) :=
   | Parallel.const _ => by rfl
   | Parallel.var x => Parallel.var x
   | Parallel.abs ρ => Parallel.abs (para_tri ρ)
-  | Parallel.beta p1 p2 => by
-      refine para_unshift (sub_para (para_tri p2) (para_shift (para_tri p1))) ?_
-      simp [sub]
-      apply betaShifted'
+  | Parallel.beta p1 p2 => para_unshift (sub_para (para_tri p2) (para_shift (para_tri p1))) (betaShifted' _ _ _)
   | @Parallel.app T (Term.abs _) _ _ _ (Parallel.abs p1) p2 => Parallel.beta (para_tri p2) (para_tri p1)
   | @Parallel.app T (var _) _ _ _ p1 p2 => Parallel.app (para_tri p1) (para_tri p2)
   | @Parallel.app T (app _ _) _ _ _ p1 p2 => Parallel.app (para_tri p1) (para_tri p2)
