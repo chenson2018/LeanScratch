@@ -141,8 +141,7 @@ theorem sub_para {x : ℕ} {N N' M M' : Term T} : (N ⇉ N') → (M ⇉ M') → 
       apply sub_para
       exact r
       exact M_M'
-  | Parallel.beta r2 r1 => 
-      rename_i X W Y Z
+  | @Parallel.beta _ X W Y Z r2 r1 => 
       simp_rw [shift, unshift, ←unshiftSubstSwap' _ _ (betaShifted' 0 Z W), Nat.add_comm x 1, substSubstSwap x 0 Z W M']
       refine Parallel.beta (sub_para r2 M_M') ?_
       simp_rw [Nat.add_comm]
