@@ -53,9 +53,7 @@ theorem shiftUnshiftSwap {d c d' c'} {t : Term T} :
     | _, sapp p2 p3 => exact congrArg₂ Term.app (shiftUnshiftSwap p1 p2) (shiftUnshiftSwap p1 p3)
     | _, sabs p2 => 
        simp [shiftₙ, unshiftₙ]
-       rw [shiftUnshiftSwap (Nat.add_le_add_right p1 1) p2]
-       have eq : c + 1 + d' = c + d' + 1 := by linarith
-       rw [eq]
+       rw [shiftUnshiftSwap (Nat.add_le_add_right p1 1) p2, Nat.add_right_comm c 1 d']
     | var n, p => 
        simp [shiftₙ, unshiftₙ]
        by_cases h₁ : n < c' <;> simp [h₁]
@@ -67,19 +65,16 @@ theorem shiftUnshiftSwap {d c d' c'} {t : Term T} :
        · cases p
          case neg.svar1 p =>
            exfalso
-           apply h₁
-           exact p
+           exact h₁ p
          case neg.svar2 p₁ p₂ =>
            by_cases h₂ : n - d' < c <;> by_cases h₃ : n < c + d' <;> simp [h₁, h₂, h₃]
            case pos =>
               exfalso
-              apply h₂
-              exact Nat.sub_lt_right_of_lt_add p₁ h₃
+              exact h₂ $ Nat.sub_lt_right_of_lt_add p₁ h₃
            all_goals by_cases h₄ : n + d < c' <;> simp [h₄]
            · linarith
            · exfalso
-             apply h₃
-             exact (Nat.sub_lt_iff_lt_add' p₁).mp h₂
+             exact h₃ $ (Nat.sub_lt_iff_lt_add' p₁).mp h₂
            · linarith
            · rw [Nat.sub_add_comm p₁]
 
@@ -93,8 +88,7 @@ theorem weakShifted {d c} {t : Term T} (n) : Shifted (d + n) c t → Shifted d (
   | _, sapp p1 p2 => exact sapp (weakShifted _ p1) (weakShifted _ p2)
   | n+1, sabs p => 
       refine sabs ?_
-      have eq : c + (n + 1) + 1 = c + 1 + (n + 1) := by linarith
-      rw [eq]
+      rw [Nat.add_right_comm c (n + 1) 1]
       exact weakShifted _ p
 
 theorem betaShifted' (n) (t1 t2 : Term T) : Shifted 1 n (t1 [ n := shiftₙ 0 (n+1) t2 ]) := 
@@ -108,11 +102,9 @@ theorem betaShifted' (n) (t1 t2 : Term T) : Shifted 1 n (t1 [ n := shiftₙ 0 (n
   | var n' => by
       simp [sub]
       by_cases h : n' = n <;> simp [h]
-      · have h' := shiftShifted (n+1) 0 t2
-        nth_rw 1 [Nat.add_comm] at h'
-        have h' := weakShifted _ h'
-        simp at h'
-        exact h'
+      · nth_rw 1 [←Nat.zero_add n]
+        nth_rw 2 [Nat.add_comm]
+        exact weakShifted _ $ shiftShifted (1+n) 0 t2
       · by_cases h' : n < n'
         · refine svar2 h' ?_
           exact Nat.one_le_of_lt h'
@@ -127,9 +119,7 @@ theorem shiftShiftSwap (d c d' c') (t : Term T) : c ≤ c' → shiftₙ c d (t.s
   | app l r => exact congrArg₂ Term.app (shiftShiftSwap d c d' c' l p) (shiftShiftSwap d c d' c' r p)
   | Term.abs body =>
       simp [shiftₙ]
-      rw [shiftShiftSwap d (c+1) d' (c'+1) body (Nat.add_le_add_right p 1)]
-      have eq : c' + 1 + d = c' + d + 1 := by linarith
-      rw [eq]
+      rw [shiftShiftSwap d (c+1) d' (c'+1) body (Nat.add_le_add_right p 1), Nat.add_right_comm c' 1 d]
   | var x => 
       simp [shiftₙ]
       by_cases h₁ : x < c' 
@@ -463,8 +453,7 @@ theorem Term.free_shiftₙ (t : Term T) (n c d: ℕ) (h : free t n) : free (t.sh
   revert c n
   induction t <;> intros n c h <;> cases h <;> constructor <;> try aesop <;> try linarith
   case abs body ih body_free =>
-    have eq : n + d + 1 = n + 1 + d := by linarith
-    rw [eq]
+    rw [Nat.add_right_comm n d 1]
     exact ih (n+1) (c+1) body_free
 
 -- Pierce exercise 6.2.6
