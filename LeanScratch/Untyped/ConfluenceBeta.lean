@@ -143,17 +143,10 @@ theorem sub_para {x : ℕ} {N N' M M' : Term T} : (N ⇉ N') → (M ⇉ M') → 
       exact M_M'
   | Parallel.beta r2 r1 => 
       rename_i X W Y Z
-      simp [shift, unshift]
-      have eq : ((unshiftₙ 0 1 (Z[0:=shiftₙ 0 1 W]))[x:=M']) 
-                = 
-                (unshiftₙ 0 1 ((Z [x+1 := shiftₙ 0 1 M']) [0 := shiftₙ 0 1 (W [x := M'])]))
-                := by
-          rw [←unshiftSubstSwap' _ _ (betaShifted' 0 Z W)]
-          have sss := substSubstSwap x 0 Z W M'
-          rw [Nat.zero_add, Nat.add_comm 1 x] at sss
-          rw [sss]
-      rw [eq]
-      refine Parallel.beta (sub_para r2 M_M') (sub_para r1 (para_shift M_M'))
+      simp_rw [shift, unshift, ←unshiftSubstSwap' _ _ (betaShifted' 0 Z W), Nat.add_comm x 1, substSubstSwap x 0 Z W M']
+      refine Parallel.beta (sub_para r2 M_M') ?_
+      simp_rw [Nat.add_comm]
+      exact sub_para r1 (para_shift M_M')
 
 def Term.plus (t : Term T) : Term T :=
   match t with
