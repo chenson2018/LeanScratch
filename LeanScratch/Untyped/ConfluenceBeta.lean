@@ -97,8 +97,7 @@ theorem para_shift_conserve  : ∀ {d c} {t1 t2 : Term T}, (t1 ⇉  t2) → Shif
 theorem para_unshift {c d} {M M' : Term T} : (M ⇉ M') → Shifted d c M → (M.unshiftₙ c d ⇉ M'.unshiftₙ c d) := by
   intros para sM
   match para, sM with
-  | Parallel.const _, _ => rfl
-  | Parallel.var _, _ => rfl
+  | Parallel.const _, _ | Parallel.var _, _ => rfl
   | Parallel.app l r, Shifted.sapp sl sr => exact Parallel.app (para_unshift l sl) (para_unshift r sr)
   | Parallel.abs body, Shifted.sabs sbody => exact Parallel.abs (para_unshift body sbody)
   | Parallel.beta r2 r1, Shifted.sapp (Shifted.sabs s1) s2 => 
