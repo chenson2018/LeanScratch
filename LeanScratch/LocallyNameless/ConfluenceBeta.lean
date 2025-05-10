@@ -13,7 +13,7 @@ inductive Parallel : Term X C → Term X C → Prop
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel (app L M) (app L' M')
 | lam (xs) {m m'} : (∀ x ∉ (xs : Finset X), Parallel (m ^ fvar x) (m' ^ fvar x)) → Parallel (lam m) (lam m')
 | beta (xs) {m m' n n'} : 
-    (∀ {x}, x ∉ (xs : Finset X) → Parallel (m ^ fvar x) (m' ^ fvar x) ) → 
+    (∀ x ∉ (xs : Finset X), Parallel (m ^ fvar x) (m' ^ fvar x) ) →
     Parallel n n' → 
     Parallel (app (lam m) n) (m' ^ n')
 
@@ -87,9 +87,9 @@ lemma para_to_redex {M N : Term X C} (para : M ⇉ N) : (M ↠β N) := by
     have m'_lam_lc : LC m'.lam := by
       apply LC.lam xs
       intros _ mem
-      exact para_lc_r (para_ih mem)
+      exact para_lc_r (para_ih _ mem)
     calc
-      m.lam.app n ↠β m'.lam.app n  := redex_app_l_cong (redex_lam_cong xs (λ _ mem ↦ redex_ih mem)) (para_lc_l para_n)
+      m.lam.app n ↠β m'.lam.app n  := redex_app_l_cong (redex_lam_cong xs (λ _ mem ↦ redex_ih _ mem)) (para_lc_l para_n)
       _           ↠β m'.lam.app n' := redex_app_r_cong redex_n m'_lam_lc
       _           ↠β m' ^ n'       := Relation.ReflTransGen.single (Step.β m'_lam_lc (para_lc_r para_n))
 
@@ -139,6 +139,7 @@ lemma para_open_close {M M' : Term X C} (x y z) :
   exact para_lc_r para
   exact para_lc_l para
 
+-- thanks to https://github.com/ElifUskuplu/Stlc_deBruijn/blob/main/Stlc/confluence.lean
 theorem para_diamond : Diamond (@Parallel X C) := by
   simp [Diamond]
   intros t t1 t2 tpt1
@@ -167,10 +168,14 @@ theorem para_diamond : Diamond (@Parallel X C) := by
       constructor
       · apply Parallel.lam ((s2' ^ fvar x).fv ∪ t'.fv ∪ {x})
         intros y qy
-        sorry
+        simp
+        rw [←open_close x s2' 0 q4]
+        exact para_open_close x y 0 qt'_l qy
       · apply Parallel.lam ((t2' ^ fvar x).fv ∪ t'.fv ∪ {x})
         intros y qy
-        sorry
+        simp
+        rw [←open_close x t2' 0 q3]
+        exact para_open_close x y 0 qt'_r qy 
   case beta xs s1 s1' s2 s2' mem ps ih1 ih2 => 
     cases tpt2
     case app  => sorry
