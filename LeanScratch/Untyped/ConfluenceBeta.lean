@@ -2,6 +2,7 @@ import LeanScratch.Untyped.Basic
 import LeanScratch.Untyped.Reduction
 import LeanScratch.Untyped.Shifting
 import LeanScratch.Untyped.Beta
+import LeanScratch.Confluence.Basic
 
 open Term
 
