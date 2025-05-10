@@ -193,7 +193,7 @@ theorem para_diamond : Diamond (@Parallel X C) := by
         have ⟨x, qx⟩ := atom_fresh_for_set (xs ∪ xs' ∪ s1''.fv ∪ u1'.fv)
         simp at qx
         have ⟨t', qt'_l, qt'_r⟩ := ih2 s2pu2'
-        have ⟨t'', qt''_l, qt''_r⟩ := @ih1 (lam u1') $ Parallel.lam xs (λ _ a ↦ mem a)
+        have ⟨t'', qt''_l, qt''_r⟩ := @ih1 (lam u1') $ Parallel.lam xs (λ _ a ↦ mem _ a)
         cases qt''_l 
         case lam xs'' w1 ih'' =>
         cases qt''_r
