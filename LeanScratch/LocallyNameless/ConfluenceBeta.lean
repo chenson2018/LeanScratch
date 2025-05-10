@@ -179,7 +179,16 @@ theorem para_diamond : Diamond (@Parallel X C) := by
   case beta xs s1 s1' s2 s2' mem ps ih1 ih2 => 
     cases tpt2
     case app  => sorry
-    case beta => sorry
+    case beta xs' u1' u2' mem' s2pu2' => 
+      have ⟨x, qx⟩ := atom_fresh_for_set (xs ∪ xs' ∪ u1'.fv ∪ s1'.fv ∪ s2'.fv ∪ u2'.fv)
+      simp at qx
+      have ⟨q1, q2, q3, q4, q5, q6⟩ := qx
+      have ⟨t', qt'_l, qt'_r⟩ := ih2 s2pu2'
+      have ⟨t'', qt''_l, qt''_r⟩ := @ih1 x q1 _ (mem' _ q2)
+      rw [subst_intro x u2' u1' _ (para_lc_l qt'_r), subst_intro x s2' s1' _ (para_lc_l qt'_l)]
+      exists t'' [x := t']
+      exact ⟨para_subst x qt''_l qt'_l, para_subst x qt''_r qt'_r⟩
+      all_goals aesop
   case app s1 s1' s2 s2' s1ps1' _ ih1 ih2  =>
     cases tpt2
     case app u1 u2' s1 s2 =>
