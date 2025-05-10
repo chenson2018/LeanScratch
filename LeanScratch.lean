@@ -10,7 +10,6 @@ import LeanScratch.Untyped.ConfluenceBeta
 import LeanScratch.Untyped.Examples
 import LeanScratch.Untyped.Reduction
 import LeanScratch.Untyped.Shifting
-import LeanScratch.Untyped.Models
 -/
 
 import LeanScratch.LocallyNameless.Basic
