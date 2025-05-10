@@ -13,13 +13,13 @@ and working through the proofs myself.
 ## Untyped
 
 A formalization of the untyped lambda calculus with de Bruijn indices, with
-proofs of confluence and progress. This formalizes some results on the untyped
-lambda calculus, using Barendregt's *The Lambda Calculus, Its Syntax and
-Semantics*, Pierce's *Types and Programming Languages*, *[Software
-Foundations](https://softwarefoundations.cis.upenn.edu/)*, and *[Programming
-Language Foundations in Agda](https://plfa.github.io/)* as references. Reference
-to other existing formalizations are mentioned in comments. (The shifting
-definitions especially are directly taken from an Agda formalization)
+proofs of confluence and progress. I primarily use Barendregt's *The Lambda
+Calculus, Its Syntax and Semantics*, Pierce's *Types and Programming Languages*,
+*[Software Foundations](https://softwarefoundations.cis.upenn.edu/)*, and
+*[Programming Language Foundations in Agda](https://plfa.github.io/)* as
+references. Other existing formalizations that were helpful are mentioned in
+comments. (The shifting definitions especially are directly taken from an Agda
+formalization)
 
 ## LocallyNameless
 
