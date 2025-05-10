@@ -24,7 +24,6 @@ formalization)
 ## LocallyNameless
 
 A formalization of the untyped lambda calculus using a locally nameless
-representation, also with a confluence proof (currently a couple of unfinished
-pieces in the diamond proof for parallel reductions). This is where I will try
-to formalize some categorical semantics, as the locally nameless representation
+representation, also with a confluence proof. This is where I will try to
+formalize some categorical semantics, as the locally nameless representation
 allows for talking about models in the sense that Barendregt does.

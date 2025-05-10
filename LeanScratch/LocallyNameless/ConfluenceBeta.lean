@@ -139,6 +139,16 @@ lemma para_open_close {M M' : Term X C} (x y z) :
   exact para_lc_r para
   exact para_lc_l para
 
+lemma para_open_out {t t' u u' : Term X C} (L : Finset X) :
+    (∀ x, x ∉ L → (t ^ fvar x) ⇉ (u ^ fvar x))
+    → (t' ⇉ u') → (t ^ t') ⇉ (u ^ u') := by
+    intros mem para
+    let ⟨x, qx⟩ := atom_fresh_for_set (L ∪ u.fv ∪ t.fv)
+    simp at qx
+    obtain ⟨q1, q2, q3⟩ := qx
+    rw [subst_intro x t' _ q3 (para_lc_l para), subst_intro x u' _ q2 (para_lc_r para)]
+    exact para_subst x (mem x q1) para
+
 -- thanks to https://github.com/ElifUskuplu/Stlc_deBruijn/blob/main/Stlc/confluence.lean
 theorem para_diamond : Diamond (@Parallel X C) := by
   simp [Diamond]
@@ -216,31 +226,22 @@ theorem para_diamond : Diamond (@Parallel X C) := by
       and_intros <;> constructor <;> assumption
     case beta xs t1' u1' u2' mem s2pu2' => 
       cases s1ps1'
-      case lam xs' s1'' ih' =>
+      case lam xs' s1'' mem' =>
         have ⟨x, qx⟩ := atom_fresh_for_set (xs ∪ xs' ∪ s1''.fv ∪ u1'.fv)
         simp at qx
+        obtain ⟨q1, q2, q3, q4⟩ := qx
         have ⟨t', qt'_l, qt'_r⟩ := ih2 s2pu2'
-        have ⟨t'', qt''_l, qt''_r⟩ := @ih1 (lam u1') $ Parallel.lam xs (λ _ a ↦ mem _ a)
-        cases qt''_l 
-        case lam xs'' w1 ih'' =>
+        have ⟨t'', qt''_l, qt''_r⟩ := @ih1 (lam u1') (Parallel.lam xs mem)
+        cases qt''_l
+        next xs'' w1 mem'' =>
         cases qt''_r
-        case lam xs''' ih''' =>
+        case lam xs''' mem''' =>
           exists w1 ^ t'
           constructor
           · apply Parallel.beta xs''
-            exact fun {x} a ↦ ih'' x a
+            exact fun x a ↦ mem'' x a
             exact qt'_l
-          · rw [subst_intro x u2' u1', subst_intro x _ w1]
-            simp
-            apply para_subst
-            simp at *
-            apply ih'''
-            sorry
-            assumption
-            sorry
-            exact para_lc_r qt'_l
-            aesop
-            exact para_lc_l qt'_r
+          · exact para_open_out xs''' mem''' qt'_r
 
 theorem para_confluence : Confluence (@Parallel X C) := Relation.ReflTransGen.diamond para_diamond
 
