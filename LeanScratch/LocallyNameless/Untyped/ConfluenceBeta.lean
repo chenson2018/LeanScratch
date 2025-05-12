@@ -1,6 +1,6 @@
-import LeanScratch.LocallyNameless.Basic
-import LeanScratch.LocallyNameless.Reduction
-import LeanScratch.LocallyNameless.Properties
+import LeanScratch.LocallyNameless.Untyped.Basic
+import LeanScratch.LocallyNameless.Untyped.Reduction
+import LeanScratch.LocallyNameless.Untyped.Properties
 import LeanScratch.Confluence.Basic
 
 open Term

@@ -1,6 +1,6 @@
-import LeanScratch.LocallyNameless.Basic
-import LeanScratch.LocallyNameless.Reduction
-import LeanScratch.LocallyNameless.Beta
+import LeanScratch.LocallyNameless.Untyped.Basic
+import LeanScratch.LocallyNameless.Untyped.Reduction
+import LeanScratch.LocallyNameless.Untyped.Beta
 
 open Term
 

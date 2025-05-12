@@ -1,4 +1,4 @@
-import LeanScratch.LocallyNameless.Basic
+import LeanScratch.LocallyNameless.Untyped.Basic
 
 variable {X C : Type} [DecidableEq X] [Atom X]
 

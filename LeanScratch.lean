@@ -12,7 +12,7 @@ import LeanScratch.Untyped.Reduction
 import LeanScratch.Untyped.Shifting
 -/
 
-import LeanScratch.LocallyNameless.Basic
-import LeanScratch.LocallyNameless.ConfluenceBeta
-import LeanScratch.LocallyNameless.Reduction
+import LeanScratch.LocallyNameless.Untyped.Basic
+import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
+import LeanScratch.LocallyNameless.Untyped.Reduction
 --import LeanScratch.LocallyNameless.Models

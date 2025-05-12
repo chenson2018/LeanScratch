@@ -1,5 +1,5 @@
-import LeanScratch.LocallyNameless.Basic
-import LeanScratch.LocallyNameless.Properties
+import LeanScratch.LocallyNameless.Untyped.Basic
+import LeanScratch.LocallyNameless.Untyped.Properties
 
 open Term
 
