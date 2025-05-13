@@ -19,6 +19,7 @@ notation:39 t " ≈β " t' => Relation.EqvGen t t'
 open Step
 
 -- a few lemmas that reductions imply local closure
+omit [DecidableEq X] [Atom X] in
 lemma Term.step_lc_l {M M' : Term X C} (step : M ⇢β M') : LC M := by
   induction step <;> constructor <;> assumption
 
@@ -28,12 +29,14 @@ lemma Term.step_lc_r {M M' : Term X C} (step : M ⇢β M') : LC M' := by
   all_goals constructor <;> assumption 
 
 -- some congruence lemmas about reduction
+omit [DecidableEq X] [Atom X] in
 theorem redex_app_l_cong {M M' N : Term X C} : (M ↠β M') → LC N → (app M N ↠β app M' N) := by
   intros redex lc_N 
   induction' redex
   case refl => rfl
   case tail ih r => exact Relation.ReflTransGen.tail r (ξᵣ lc_N ih)
 
+omit [DecidableEq X] [Atom X] in
 theorem redex_app_r_cong {M M' N : Term X C} : (M ↠β M') → LC N → (app N M ↠β app N M') := by
   intros redex lc_N 
   induction' redex

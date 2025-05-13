@@ -4,6 +4,7 @@ variable {X C : Type} [DecidableEq X] [Atom X]
 
 namespace Term
 
+omit [DecidableEq X] [Atom X] in
 lemma open_lc_aux (e : Term X C) : ∀ (j v i u),
   i ≠ j ->
   e ⟦j ↝ v⟧ = (e ⟦j ↝ v⟧) ⟦i ↝ u⟧ ->
@@ -28,6 +29,7 @@ lemma open_lc (k t) (e : Term X C) : LC e → e = e⟦k ↝ t⟧ := by
     have ⟨y, ymem⟩ := atom_fresh_for_set xs
     apply open_lc_aux e 0 (fvar y) (k+1) t <;> aesop
 
+omit [Atom X] in
 theorem subst_fresh (x : X) (t : Term X C) : ∀ u, x ∉ t.fv → (t [x := u]) = t := by
   induction t <;> intros <;> simp at * <;> aesop
 
@@ -84,6 +86,7 @@ theorem beta_lc {M N : Term X C} : LC (lam M) → LC N → LC (M ^ N) := by
     all_goals aesop    
 
 /- opening and closing are inverses -/
+omit [Atom X] in
 lemma open_close (x : X) (t : Term X C) (k : ℕ) : x ∉ t.fv → t⟦k ↝ fvar x⟧⟦k ↜ x⟧ = t := by
   intros mem
   revert k
@@ -93,11 +96,13 @@ lemma open_close (x : X) (t : Term X C) (k : ℕ) : x ∉ t.fv → t⟦k ↝ fva
   case lam t ih => exact ih mem (k + 1)
   case app l r ih_l ih_r => refine ⟨ih_l ?_ k, ih_r ?_ k⟩ <;> aesop
 
+omit [Atom X] in
 lemma open_injective (x) (M M' : Term X C) : x ∉ M.fv → x ∉ M'.fv → M ^ fvar x = M' ^ fvar x → M = M' := by
   intros free_M free_M' eq
   rw [←open_close x M 0 free_M, ←open_close x M' 0 free_M']
   exact congrArg (close_rec 0 x) eq
 
+omit [DecidableEq X] [Atom X] in
 lemma swap_open_fvars (k n x y) (m : Term X C) : k ≠ n → x ≠ y → m⟦n ↝ fvar y⟧⟦k ↝ fvar x⟧ = m⟦k ↝ fvar x⟧⟦n ↝ fvar y⟧ := by
   revert k n
   induction' m <;> intros k n ne_kn ne_xy <;> simp
@@ -105,6 +110,7 @@ lemma swap_open_fvars (k n x y) (m : Term X C) : k ≠ n → x ≠ y → m⟦n �
   case lam ih => apply ih <;> aesop
   case app => aesop
 
+omit [Atom X] in
 lemma swap_open_fvar_close (k n x y) (m : Term X C) : k ≠ n → x ≠ y → m⟦n ↝ fvar y⟧⟦k ↜ x⟧ = m⟦k ↜ x⟧⟦n ↝ fvar y⟧ := by
   revert k n
   induction' m <;> intros k n ne_kn ne_xy <;> simp
@@ -113,6 +119,7 @@ lemma swap_open_fvar_close (k n x y) (m : Term X C) : k ≠ n → x ≠ y → m�
   case lam ih => apply ih <;> aesop
   case app => aesop
 
+omit [Atom X] in
 lemma close_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ∉ (m⟦k ↜ y⟧).fv := by
   intros mem
   revert k
@@ -121,6 +128,7 @@ lemma close_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ∉ (m�
   case app => aesop
   case lam ih => exact ih mem
 
+omit [Atom X] in
 lemma open_fresh_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ≠ y → x ∉ (m⟦k ↝ fvar y⟧).fv := by
   intros mem neq
   revert k
@@ -130,6 +138,7 @@ lemma open_fresh_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ≠
   case fvar => aesop
   case lam ih => exact ih mem
 
+omit [Atom X] in
 lemma subst_preserve_not_fvar {x y} (m n : Term X C) : x ∉ m.fv ∪ n.fv → x ∉ (m [y := n]).fv := by
   intros mem
   simp at mem
@@ -162,6 +171,7 @@ lemma open_close_to_subst (m : Term X C) (x y : X) (k : ℕ) : LC m → m ⟦k �
       simp [x'_mem]
     all_goals aesop
 
+omit [Atom X] in
 lemma close_var_not_fvar_rec (x) (k) (t : Term X C) : x ∉ (t⟦k ↜ x⟧).fv := by
   revert k
   induction t <;> intros k <;> simp
@@ -169,6 +179,7 @@ lemma close_var_not_fvar_rec (x) (k) (t : Term X C) : x ∉ (t⟦k ↜ x⟧).fv 
   case app => aesop
   case lam ih => exact ih (k + 1)
 
+omit [Atom X] in
 lemma close_var_not_fvar (x) (t : Term X C) : x ∉ (t ^* x).fv := by
   simp
   exact close_var_not_fvar_rec x 0 t

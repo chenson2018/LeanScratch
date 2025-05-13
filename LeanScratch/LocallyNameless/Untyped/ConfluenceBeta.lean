@@ -21,11 +21,11 @@ notation:39 t " ⇉ "  t' =>                       Parallel t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
 
 -- TODO: clean this up...
+omit [DecidableEq X] [Atom X] in
 lemma para_lc_l {M M' : Term X C} (step : M ⇉ M') : LC M  := by
   induction step
   case lam xs _ _ _ _ => 
-    constructor
-    case L => exact xs
+    apply LC.lam xs
     assumption
   case beta xs _ _ _ _ _ _ _ _ =>
     constructor
@@ -53,6 +53,7 @@ def Parallel.lc_refl (M : Term X C) : LC M → M ⇉ M := by
     assumption
   all_goals constructor <;> assumption
 
+omit [DecidableEq X] [Atom X] in
 lemma step_to_para {M N : Term X C} (step : M ⇢β N) : (M ⇉ N) := by
   induction step
   case ξₗ =>
