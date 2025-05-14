@@ -5,6 +5,7 @@ import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
 
 inductive Ty (K : Type)
   | const : Ty K
+  | unit : Ty K
   | base : K → Ty K
   | arr : Ty K → Ty K → Ty K
   deriving Repr, DecidableEq
@@ -20,6 +21,7 @@ open Term Ty
 
 inductive Typing {X C K : Type} [DecidableEq X] : List (X × Ty K) → Term X C → Ty K → Prop
 | const {Γ c} : Typing Γ (const c) const
+| unit {Γ} : Typing Γ unit unit
 | var {Γ x T} : Ok Γ → (x,T) ∈ Γ → Typing Γ (fvar x) T
 | lam (L : Finset X) {Γ t T1 T2} : (∀ x ∉ L, Typing ((x,T1) :: Γ) (t ^ fvar x) T2) → Typing Γ (lam t) (arr T1 T2) 
 | app {Γ t t' T1 T2} : Typing Γ t (arr T1 T2) → Typing Γ t' T1 → Typing Γ (app t t') T2
@@ -50,6 +52,7 @@ lemma weakening_strengthened {Γ Δ Γ_Δ Φ : Ctx X K} {t : Term X C} {T} (eq :
     exact ih_r eq ok_Γ_Φ_Δ
   case lam xs _ _ T1 T2 q ih =>
     sorry      
+  case unit => exact Typing.unit
 
 lemma weakening {Γ Δ : Ctx X K} {t : Term X C} {T} :
   Γ ⊢ t ∶ T → 
@@ -63,10 +66,9 @@ omit [Atom X] in
 lemma typing_lc {Γ : Ctx X K} {t : Term X C} {T} : Γ ⊢ t ∶ T → t.LC := by
   intros h
   induction' h
-  case var => constructor
   case lam xs _ _ _ _ _ ih => exact LC.lam xs _ (λ x a ↦ ih x a)
   case app ih_l ih_r => exact LC.app ih_l ih_r
-  case const => constructor
+  all_goals constructor
 
 lemma typing_subst_strengthened {Γ Δ : Ctx X K} {t s : Term X C} {S T z} :
   (Δ ++ (z, S) :: Γ) ⊢ t ∶ T →
@@ -92,9 +94,7 @@ lemma typing_subst_strengthened {Γ Δ : Ctx X K} {t s : Term X C} {S T z} :
     apply Typing.lam xs
     intros x free
     sorry
-  case const => 
-    cases weak
-    constructor
+  all_goals (cases weak; constructor)
 
 lemma typing_subst {Γ : Ctx X K} {t s : Term X C} {S T z} :
   (z, S) :: Γ ⊢ t ∶ T → 
@@ -121,8 +121,6 @@ theorem preservation {Γ : Ctx X K} {t t' : Term X C} {T} : Γ ⊢ t ∶ T → (
   intros der
   revert t'
   induction der <;> intros t' step
-  case var => cases step
-  case const => cases step
   case lam xs Γ t T1 T2 mem ih =>
     cases step
     case ξ xs' t' mem' =>
@@ -138,6 +136,7 @@ theorem preservation {Γ : Ctx X K} {t t' : Term X C} {T} : Γ ⊢ t ∶ T → (
     case β t t_lam lc_s' =>
       cases der_l
       case lam xs mem => exact preservation_var mem der_r
+  all_goals cases step
 
 theorem preservation_redex {Γ : Ctx X K} {t t' : Term X C} {T} : Γ ⊢ t ∶ T → (t ↠β t') → Γ ⊢ t' ∶ T := by
   intros der redex

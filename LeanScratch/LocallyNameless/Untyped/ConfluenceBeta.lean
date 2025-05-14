@@ -9,6 +9,7 @@ variable {X C : Type} [DecidableEq X] [Atom X]
 
 inductive Parallel : Term X C → Term X C → Prop
 | const (t : C) : Parallel (const t) (const t)
+| unit : Parallel unit unit
 | fvar (x : X) : Parallel (fvar x) (fvar x)
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel (app L M) (app L' M')
 | lam (xs) {m m'} : (∀ x ∉ (xs : Finset X), Parallel (m ^ fvar x) (m' ^ fvar x)) → Parallel (lam m) (lam m')
@@ -74,8 +75,6 @@ lemma step_to_para {M N : Term X C} (step : M ⇢β N) : (M ⇉ N) := by
 
 lemma para_to_redex {M N : Term X C} (para : M ⇉ N) : (M ↠β N) := by
   induction para
-  case const => constructor
-  case fvar  => constructor
   case app _ _ _ _ l_para m_para redex_l redex_m =>
     trans
     exact redex_app_l_cong redex_l (para_lc_l m_para)
@@ -93,6 +92,7 @@ lemma para_to_redex {M N : Term X C} (para : M ⇉ N) : (M ↠β N) := by
       m.lam.app n ↠β m'.lam.app n  := redex_app_l_cong (redex_lam_cong xs (λ _ mem ↦ redex_ih _ mem)) (para_lc_l para_n)
       _           ↠β m'.lam.app n' := redex_app_r_cong redex_n m'_lam_lc
       _           ↠β m' ^ n'       := Relation.ReflTransGen.single (Step.β m'_lam_lc (para_lc_r para_n))
+  all_goals constructor
 
 theorem parachain_iff_redex {M N : Term X C} : (M ⇉* N) ↔ (M ↠β N) := by
   refine Iff.intro ?chain_to_redex ?redex_to_chain <;> intros h <;> induction' h <;> try rfl
@@ -102,7 +102,6 @@ theorem parachain_iff_redex {M N : Term X C} : (M ⇉* N) ↔ (M ↠β N) := by
 lemma para_subst {M M' N N': Term X C} (x) : (M ⇉ M') → (N ⇉ N') → (M[x := N] ⇉ M'[x := N']) := by
   intros pm pn
   induction pm <;> simp
-  case const => constructor
   case fvar x' =>
     by_cases h : x = x' <;> simp [h]
     assumption
@@ -125,7 +124,8 @@ lemma para_subst {M M' N N': Term X C} (x) : (M ⇉ M') → (N ⇉ N') → (M[x 
     push_neg at ymem
     apply ih
     all_goals aesop
-  
+  all_goals constructor
+
 lemma para_open_close {M M' : Term X C} (x y z) : 
   (M ⇉ M') → 
   y ∉ (M.fv ∪ M'.fv ∪ {x}) → 
@@ -243,6 +243,12 @@ theorem para_diamond : Diamond (@Parallel X C) := by
             exact fun x a ↦ mem'' x a
             exact qt'_l
           · exact para_open_out xs''' mem''' qt'_r
+  case unit =>
+    exists t2
+    constructor
+    assumption
+    apply Parallel.lc_refl
+    exact para_lc_r tpt2
 
 theorem para_confluence : Confluence (@Parallel X C) := Relation.ReflTransGen.diamond para_diamond
 

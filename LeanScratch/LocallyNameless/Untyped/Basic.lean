@@ -4,6 +4,7 @@ import Mathlib
 /-- lambda terms with free variables over `atom` and constants over `M` -/
 inductive Term (atom : Type) (M : Type)
 | const (m : M) : Term atom M
+| unit : Term atom M
 | bvar : ℕ → Term atom M
 | fvar : atom → Term atom M
 | lam  : Term atom M → Term atom M
@@ -15,6 +16,7 @@ variable {X : Type} [DecidableEq X] [Atom X] {M : Type}
 @[simp]
 def Term.open_rec (i : ℕ) (sub : Term X M) : Term X M → Term X M
 | const m => const m
+| unit => unit
 | bvar i' => if i = i' then sub else bvar i'
 | fvar x  => fvar x
 | app l r => app (open_rec i sub l) (open_rec i sub r)
@@ -37,6 +39,7 @@ local instance (i : ℕ) : OfNat (Term X M) i where
 @[simp]
 def Term.subst (x : X) (sub : Term X M) : Term X M → Term X M
 | const m => const m
+| unit => unit
 | bvar i  => bvar i
 | fvar x' => if x = x' then sub else fvar x'
 | app l r => app (subst x sub l) (subst x sub r)
@@ -47,7 +50,7 @@ notation:67 e "[" x ":=" sub "]" => Term.subst x sub e
 /-- free variables of a term -/
 @[simp]
 def Term.fv : Term X M → Finset X
-| bvar _ | const _ => {}
+| bvar _ | const _ | unit => {}
 | fvar x => {x}
 | lam e1 => e1.fv
 | app l r => l.fv ∪ r.fv
@@ -55,6 +58,7 @@ def Term.fv : Term X M → Finset X
 /-- locally closed terms -/
 inductive Term.LC : Term X M → Prop
 | const (m) : LC (const m)
+| unit : LC unit
 | fvar (x)  : LC (fvar x)
 | lam (L : Finset X) (e : Term X M) : (∀ x : X, x ∉ L → LC (e ^ fvar x)) → LC (lam e)
 | app {l r} : l.LC → r.LC → LC (app l r)
@@ -63,6 +67,7 @@ inductive Term.LC : Term X M → Prop
 @[simp]
 def Term.close_rec {atom M} [DecidableEq atom] (k : ℕ) (x : atom) : Term atom M → Term atom M
 | fvar x' => if x = x' then bvar k else fvar x'
+| unit => unit
 | bvar i  => bvar i
 | const m => const m
 | app l r => app (close_rec k x l) (close_rec k x r)

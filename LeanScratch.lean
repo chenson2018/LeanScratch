@@ -15,4 +15,5 @@ import LeanScratch.Untyped.Shifting
 import LeanScratch.LocallyNameless.Untyped.Basic
 import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
 import LeanScratch.LocallyNameless.Untyped.Reduction
+import LeanScratch.LocallyNameless.STLC.Typing
 --import LeanScratch.LocallyNameless.Models

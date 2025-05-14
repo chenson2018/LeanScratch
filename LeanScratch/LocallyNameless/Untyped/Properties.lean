@@ -18,7 +18,7 @@ lemma open_lc_aux (e : Term X C) : ∀ (j v i u),
   case lam ih => 
     simp at h
     refine ih (j+1) v (i+1) u (by aesop) h
-
+  
 lemma open_lc (k t) (e : Term X C) : LC e → e = e⟦k ↝ t⟧ := by
   intros e_lc
   revert k
@@ -63,6 +63,7 @@ theorem subst_lc {x : X} {e u : Term X C} : LC e → LC u → LC (e [x := u]) :=
       rw [subst_open_var y x u e ?_ lc_u]
       refine subst_lc (cf y ?_) lc_u
       all_goals aesop
+  | LC.unit => exact LC.unit
 
 lemma subst_intro (x) (t e : Term X C) : x ∉ e.fv → LC t → e ^ t = (e ^ fvar x) [ x := t ] := by
   intros mem t_lc
