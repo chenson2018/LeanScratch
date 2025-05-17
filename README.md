@@ -10,7 +10,7 @@ Context](https://math.jhu.edu/~eriehl/context.pdf)*. I use Mathlib, but try to d
 so in a way that strikes a balance between utilizing existing background lemmas
 and working through the proofs myself.
 
-## Untyped
+## DeBruijn
 
 A formalization of the untyped lambda calculus with de Bruijn indices, with
 proofs of confluence and progress. I primarily use Barendregt's *The Lambda

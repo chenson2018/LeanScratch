@@ -1,4 +1,4 @@
-import LeanScratch.Untyped.Basic
+import LeanScratch.DeBruijn.Basic
 
 open Term
 
@@ -451,10 +451,12 @@ inductive Term.free : Term T → ℕ → Prop where
 -- Pierce exercise 6.2.3
 theorem Term.free_shiftₙ (t : Term T) (n c d: ℕ) (h : free t n) : free (t.shiftₙ c d) (n+d) := by
   revert c n
-  induction t <;> intros n c h <;> cases h <;> constructor <;> try aesop <;> try linarith
+  induction t <;> intros n c h <;> cases h <;> constructor
   case abs body ih body_free =>
     rw [Nat.add_right_comm n d 1]
-    exact ih (n+1) (c+1) body_free
+    exact ih (n + 1) (c + 1) body_free
+  case var.var.a => split <;> linarith
+  all_goals aesop
 
 -- Pierce exercise 6.2.6
 theorem Term.free_sub {j n} {s t : Term T} : j ≤ n → free s n → free t n → free (t [j := s]) n := by

@@ -1,5 +1,5 @@
-import LeanScratch.Untyped.Basic
-import LeanScratch.Untyped.Reduction
+import LeanScratch.DeBruijn.Basic
+import LeanScratch.DeBruijn.Reduction
 
 open Term
 

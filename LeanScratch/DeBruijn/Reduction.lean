@@ -1,4 +1,4 @@
-import LeanScratch.Untyped.Basic
+import LeanScratch.DeBruijn.Basic
 
 open Term
 
@@ -38,11 +38,10 @@ theorem abs_cong {N N'} {R : Term T → Term T → Prop} : ( N ↠R N') → (N.a
   case refl => rfl
   case tail r ih => exact Relation.ReflTransGen.tail ih (Step_R.ξ r)
 
--- TODO: is this true as stated, without conditions on R???
--- might want to generalize over shifting parameters
-theorem shift_reduction (N N' : Term T) (R : Term T → Term T → Prop) (h :N ↠R N') : shiftₙ 0 1 N ↠R shiftₙ 0 1 N' := sorry
-
-theorem sub_reduction (i : ℕ) (M N N' : Term T) (R : Term T → Term T → Prop) (h :N ↠R N') 
+-- (not used anywhere else, but interesting)
+theorem sub_reduction 
+  (i : ℕ) (M N N' : Term T) (R : Term T → Term T → Prop) (h :N ↠R N') 
+  (shift_reduction : ∀ t t', (t ↠R t') → shiftₙ 0 1 t ↠R shiftₙ 0 1 t')
   : (M [i := N]) ↠R (M [i := N']) := by
   revert i N N'
   induction M <;> intros i N N' h
@@ -51,7 +50,7 @@ theorem sub_reduction (i : ℕ) (M N N' : Term T) (R : Term T → Term T → Pro
     apply abs_cong
     simp [sub]
     refine ih (i + 1) (shiftₙ 0 1 N) (shiftₙ 0 1 N') ?_
-    exact shift_reduction N N' R h
+    exact shift_reduction N N' h
   case app l r ih_l ih_r =>
     calc
       app (l[i:=N]) (r[i:=N]) ↠R app (l [i := N']) (r [i :=N ]) := app_l_cong (ih_l _ _ _ h)

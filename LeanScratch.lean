@@ -1,15 +1,15 @@
 -- This module serves as the root of the `LeanScratch` library.
 -- Import modules here that should be built as part of the library.
 
-/-
-import LeanScratch.CTIC.Ch01
+--import LeanScratch.CTIC.Ch01
 
-import LeanScratch.Untyped.Basic
-import LeanScratch.Untyped.Beta
-import LeanScratch.Untyped.ConfluenceBeta
-import LeanScratch.Untyped.Examples
-import LeanScratch.Untyped.Reduction
-import LeanScratch.Untyped.Shifting
+/-
+import LeanScratch.DeBruijn.Basic
+import LeanScratch.DeBruijn.Beta
+import LeanScratch.DeBruijn.ConfluenceBeta
+import LeanScratch.DeBruijn.Examples
+import LeanScratch.DeBruijn.Reduction
+import LeanScratch.DeBruijn.Shifting
 -/
 
 import LeanScratch.LocallyNameless.Untyped.Basic
