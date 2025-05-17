@@ -9,14 +9,17 @@ variable {X C : Type} [DecidableEq X] [Atom X]
 
 inductive Parallel : Term X C → Term X C → Prop
 | const (t : C) : Parallel (const t) (const t)
+| proj {t t' p} : Parallel t t' → Parallel (proj p t) (proj p t')
 | unit : Parallel unit unit
 | fvar (x : X) : Parallel (fvar x) (fvar x)
 | app {L L' M M'} : Parallel L L' → Parallel M M' → Parallel (app L M) (app L' M')
+| pair {L L' M M'} : Parallel L L' → Parallel M M' → Parallel (pair L M) (pair L' M')
 | lam (xs) {m m'} : (∀ x ∉ (xs : Finset X), Parallel (m ^ fvar x) (m' ^ fvar x)) → Parallel (lam m) (lam m')
 | beta (xs) {m m' n n'} : 
     (∀ x ∉ (xs : Finset X), Parallel (m ^ fvar x) (m' ^ fvar x) ) →
     Parallel n n' → 
     Parallel (app (lam m) n) (m' ^ n')
+| β_proj {l r l' r' p} : Parallel l l' → Parallel r r' → Parallel (proj p $ pair l r) (if p = Proj.L then l' else r')
 
 notation:39 t " ⇉ "  t' =>                       Parallel t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
@@ -30,9 +33,11 @@ lemma para_lc_l {M M' : Term X C} (step : M ⇉ M') : LC M  := by
     assumption
   case beta xs _ _ _ _ _ _ _ _ =>
     constructor
-    apply LC.lam
-    case a.L => exact xs
+    apply LC.lam xs
     all_goals assumption
+  case β_proj ih_l ih_r => 
+    constructor
+    exact LC.pair ih_l ih_r
   all_goals constructor <;> assumption
 
 lemma para_lc_r {M M' : Term X C} (step : M ⇉ M') : LC M' := by
@@ -44,6 +49,7 @@ lemma para_lc_r {M M' : Term X C} (step : M ⇉ M') : LC M' := by
     apply beta_lc
     apply LC.lam xs
     all_goals assumption
+  case β_proj p _ _ ih_l ih_r => cases p <;> simp <;> assumption
   all_goals constructor <;> assumption
 
 def Parallel.lc_refl (M : Term X C) : LC M → M ⇉ M := by
@@ -72,6 +78,17 @@ lemma step_to_para {M N : Term X C} (step : M ⇢β N) : (M ⇉ N) := by
   case β _ lam_lc _ =>
     cases lam_lc with | lam xs _ =>
       apply Parallel.beta xs <;> intros <;> apply Parallel.lc_refl <;> aesop
+  case β_proj l r _ ih_l ih_r => exact Parallel.β_proj (Parallel.lc_refl l ih_l) (Parallel.lc_refl r ih_r)
+  case ξₗ_pair =>
+    constructor
+    apply Parallel.lc_refl
+    all_goals assumption
+  case ξᵣ_pair =>
+    constructor
+    assumption
+    apply Parallel.lc_refl
+    assumption
+  case ξ_proj ih => exact Parallel.proj ih
 
 lemma para_to_redex {M N : Term X C} (para : M ⇉ N) : (M ↠β N) := by
   induction para
@@ -92,6 +109,15 @@ lemma para_to_redex {M N : Term X C} (para : M ⇉ N) : (M ↠β N) := by
       m.lam.app n ↠β m'.lam.app n  := redex_app_l_cong (redex_lam_cong xs (λ _ mem ↦ redex_ih _ mem)) (para_lc_l para_n)
       _           ↠β m'.lam.app n' := redex_app_r_cong redex_n m'_lam_lc
       _           ↠β m' ^ n'       := Relation.ReflTransGen.single (Step.β m'_lam_lc (para_lc_r para_n))
+  case β_proj l r l' r' p para_l para_r ih_l ih_r =>
+    trans
+    exact Relation.ReflTransGen.single $ Step.β_proj (para_lc_l para_l) (para_lc_l para_r)
+    cases p <;> assumption
+  case pair _ _ _ _ l_para m_para redex_l redex_m  => 
+    trans
+    exact redex_pair_l_cong redex_l (para_lc_l m_para)
+    exact redex_pair_r_cong redex_m (para_lc_r l_para)
+  case proj p _ step => exact redex_proj_cong p step
   all_goals constructor
 
 theorem parachain_iff_redex {M N : Term X C} : (M ⇉* N) ↔ (M ↠β N) := by
@@ -124,6 +150,9 @@ lemma para_subst {M M' N N': Term X C} (x) : (M ⇉ M') → (N ⇉ N') → (M[x 
     push_neg at ymem
     apply ih
     all_goals aesop
+  case β_proj p _ _ ih_l ih_r => cases p <;> exact Parallel.β_proj ih_l ih_r
+  case proj ih => exact Parallel.proj ih
+  case pair ih_l ih_r => exact Parallel.pair ih_l ih_r
   all_goals constructor
 
 lemma para_open_close {M M' : Term X C} (x y z) : 
@@ -249,6 +278,41 @@ theorem para_diamond : Diamond (@Parallel X C) := by
     assumption
     apply Parallel.lc_refl
     exact para_lc_r tpt2
+  case pair ih_l ih_r => 
+    cases tpt2
+    case pair para_l para_r =>
+      have ⟨l, _, _⟩ := ih_l para_l
+      have ⟨r, _, _⟩ := ih_r para_r
+      exists pair l r
+      and_intros <;> constructor <;> assumption
+  case proj m n1 p para_n1 ih => 
+    cases tpt2
+    case proj n2 para_n2 => 
+      have ⟨d, _, _⟩ := ih para_n2
+      cases p <;> [exists proj Proj.L d; exists proj Proj.R d] <;> and_intros <;> constructor <;> assumption
+    case β_proj l r l' r' para_l_l' para_r_r' => 
+      cases para_n1
+      case pair l'' r'' para_l_l'' para_r_r'' =>
+        have ⟨_, ih_l1, ih_r1⟩ := ih $ Parallel.pair para_l_l'' para_r_r'
+        have ⟨_, ih_l2, ih_r3⟩ := ih $ Parallel.pair para_l_l'  para_r_r''
+        cases ih_l1
+        cases ih_r1
+        cases ih_l2
+        cases ih_r3
+        next _ R _ _ _ _ L _ _ _ _ _ =>
+        cases p <;> [exists L; exists R] <;> (and_intros <;> [constructor; skip]) <;> assumption
+  case β_proj p _ _ ih_l ih_r =>
+    cases tpt2
+    case proj para => 
+      cases para
+      case pair lp rp
+      have ⟨dl, _, _⟩ := ih_l lp
+      have ⟨dr, _, _⟩ := ih_r rp
+      cases p <;> simp <;> [exists dl; exists dr] <;> (and_intros <;> [assumption; constructor <;> assumption])
+    case β_proj lp rp => 
+      have ⟨dl, _, _⟩ := ih_l lp
+      have ⟨dr, _, _⟩ := ih_r rp
+      cases p <;> [exists dl; exists dr]
 
 theorem para_confluence : Confluence (@Parallel X C) := Relation.ReflTransGen.diamond para_diamond
 

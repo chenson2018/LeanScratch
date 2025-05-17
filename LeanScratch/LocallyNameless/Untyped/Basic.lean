@@ -1,6 +1,8 @@
 import LeanScratch.LocallyNameless.Atom
 import Mathlib
 
+inductive Proj | L | R deriving DecidableEq
+
 /-- lambda terms with free variables over `atom` and constants over `M` -/
 inductive Term (atom : Type) (M : Type)
 | const (m : M) : Term atom M
@@ -9,6 +11,8 @@ inductive Term (atom : Type) (M : Type)
 | fvar : atom → Term atom M
 | lam  : Term atom M → Term atom M
 | app  : Term atom M → Term atom M → Term atom M
+| pair : Term atom M → Term atom M → Term atom M
+| proj : Proj → Term atom M → Term atom M
 
 variable {X : Type} [DecidableEq X] [Atom X] {M : Type}
 
@@ -21,6 +25,8 @@ def Term.open_rec (i : ℕ) (sub : Term X M) : Term X M → Term X M
 | fvar x  => fvar x
 | app l r => app (open_rec i sub l) (open_rec i sub r)
 | lam M   => lam $ open_rec (i+1) sub M
+| pair l r => pair (open_rec i sub l) (open_rec i sub r)
+| proj p l => proj p (open_rec i sub l)
 
 notation:68 e "⟦" i " ↝ " sub "⟧"=> Term.open_rec i sub e 
 
@@ -44,6 +50,8 @@ def Term.subst (x : X) (sub : Term X M) : Term X M → Term X M
 | fvar x' => if x = x' then sub else fvar x'
 | app l r => app (subst x sub l) (subst x sub r)
 | lam M   => lam $ subst x sub M
+| pair l r => pair (subst x sub l) (subst x sub r)
+| proj p l => proj p (subst x sub l)
 
 notation:67 e "[" x ":=" sub "]" => Term.subst x sub e 
 
@@ -52,8 +60,8 @@ notation:67 e "[" x ":=" sub "]" => Term.subst x sub e
 def Term.fv : Term X M → Finset X
 | bvar _ | const _ | unit => {}
 | fvar x => {x}
-| lam e1 => e1.fv
-| app l r => l.fv ∪ r.fv
+| lam e1 | proj _ e1 => e1.fv
+| app l r | pair l r => l.fv ∪ r.fv
 
 /-- locally closed terms -/
 inductive Term.LC : Term X M → Prop
@@ -62,6 +70,8 @@ inductive Term.LC : Term X M → Prop
 | fvar (x)  : LC (fvar x)
 | lam (L : Finset X) (e : Term X M) : (∀ x : X, x ∉ L → LC (e ^ fvar x)) → LC (lam e)
 | app {l r} : l.LC → r.LC → LC (app l r)
+| pair {l r} : l.LC → r.LC → LC (pair l r)
+| proj {t p} : t.LC → LC (proj p t)
 
 /-- bind a free variable of a Term, so that the transformation `T` → `λ . T` makes sense -/
 @[simp]
@@ -72,6 +82,8 @@ def Term.close_rec {atom M} [DecidableEq atom] (k : ℕ) (x : atom) : Term atom 
 | const m => const m
 | app l r => app (close_rec k x l) (close_rec k x r)
 | lam t   => lam $ close_rec (k+1) x t
+| pair l r => pair (close_rec k x l) (close_rec k x r)
+| proj p l => proj p (close_rec k x l)
 
 notation:68 e "⟦" k " ↜ " x "⟧"=> Term.close_rec k x e 
 
