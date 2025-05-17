@@ -3,6 +3,7 @@ import LeanScratch.LocallyNameless.Untyped.Reduction
 import LeanScratch.LocallyNameless.Untyped.Properties
 import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
 
+-- TODO: I assume a single type of constants, which is a bit of a narrow choice
 inductive Ty (K : Type)
   | const : Ty K
   | unit : Ty K

@@ -24,7 +24,6 @@ inductive Parallel : Term X C → Term X C → Prop
 notation:39 t " ⇉ "  t' =>                       Parallel t t'
 notation:39 t " ⇉* " t' => Relation.ReflTransGen Parallel t t'
 
--- TODO: clean this up...
 omit [DecidableEq X] [Atom X] in
 lemma para_lc_l {M M' : Term X C} (step : M ⇉ M') : LC M  := by
   induction step
