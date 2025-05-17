@@ -128,7 +128,7 @@ lemma para_subst {M M' N N': Term X C} (x) : (M ⇉ M') → (N ⇉ N') → (M[x 
   intros pm pn
   induction pm <;> simp
   case fvar x' =>
-    by_cases h : x = x' <;> simp [h]
+    split
     assumption
     constructor
   case beta xs _ _ _ _ _ _ ih _ => 

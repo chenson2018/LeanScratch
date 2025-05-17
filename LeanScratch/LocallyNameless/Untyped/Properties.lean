@@ -43,7 +43,7 @@ lemma subst_open (x) (t : Term X C) (k u e) :
   induction' e <;> intros k t_lv <;> simp
   case bvar k' => aesop
   case fvar x' => 
-    by_cases h : x = x' <;> simp [h]
+    split <;> simp_all
     exact open_lc k (u[x':=t]) t t_lv
   case lam ih => exact ih (k + 1) t_lv
   case app ih_l ih_r => exact ⟨ih_l k t_lv, ih_r k t_lv⟩
@@ -57,23 +57,19 @@ theorem subst_open_var (x y) (u e : Term X C) : y ≠ x → LC u → (e [y := u]
 /-- substitution of locally closed terms is locally closed -/
 theorem subst_lc {x : X} {e u : Term X C} : LC e → LC u → LC (e [x := u]) := by
   intros lc_e lc_u
-  match lc_e with
-  | LC.fvar x' => by_cases h : x = x' <;> simp [h] <;> [assumption; constructor]
-  | LC.const _ => constructor
-  | LC.app lc_l lc_r => refine LC.app ?_ ?_ <;> apply subst_lc <;> assumption
-  | LC.pair lc_l lc_r => refine LC.pair ?_ ?_ <;> apply subst_lc <;> assumption
-  | LC.lam xs e cf => 
-      simp 
-      refine LC.lam ({x} ∪ xs) _ ?_
-      intros y mem
-      rw [subst_open_var y x u e ?_ lc_u]
-      refine subst_lc (cf y ?_) lc_u
-      all_goals aesop
-  | LC.unit => exact LC.unit
-  | LC.proj _ => 
-      simp
-      constructor
-      apply subst_lc <;> assumption
+  induction lc_e <;> simp
+  case const => constructor
+  case unit => constructor
+  case fvar => split <;> [assumption; constructor] 
+  case app ih_l ih_r => exact LC.app ih_l ih_r
+  case pair ih_l ih_r => exact LC.pair ih_l ih_r
+  case proj ih => constructor; exact ih
+  case lam xs e _ ih =>
+    refine LC.lam ({x} ∪ xs) _ ?_
+    intros y mem
+    rw [subst_open_var y x u e ?_ lc_u]
+    apply ih
+    all_goals aesop
 
 lemma subst_intro (x) (t e : Term X C) : x ∉ e.fv → LC t → e ^ t = (e ^ fvar x) [ x := t ] := by
   intros mem t_lc
@@ -102,7 +98,7 @@ lemma open_close (x : X) (t : Term X C) (k : ℕ) : x ∉ t.fv → t⟦k ↝ fva
   intros mem
   revert k
   induction t <;> intros k <;> simp
-  case bvar n => by_cases h : k = n <;> simp [h]
+  case bvar n => split <;> simp_all
   case lam t ih => exact ih mem (k + 1)
   case app l r ih_l ih_r => refine ⟨ih_l ?_ k, ih_r ?_ k⟩ <;> aesop
   case pair ih_l ih_r => refine ⟨ih_l ?_ k, ih_r ?_ k⟩ <;> aesop
@@ -126,8 +122,8 @@ omit [Atom X] in
 lemma swap_open_fvar_close (k n x y) (m : Term X C) : k ≠ n → x ≠ y → m⟦n ↝ fvar y⟧⟦k ↜ x⟧ = m⟦k ↜ x⟧⟦n ↝ fvar y⟧ := by
   revert k n
   induction' m <;> intros k n ne_kn ne_xy <;> simp
-  case bvar n'  => by_cases h : n = n' <;> simp [h]; aesop
-  case fvar x'  => by_cases h : x = x' <;> simp [h]; aesop
+  case bvar n'  => split <;> aesop
+  case fvar x'  => split <;> aesop
   case lam ih => apply ih <;> aesop
   all_goals aesop
 
@@ -136,7 +132,7 @@ lemma close_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ∉ (m�
   intros mem
   revert k
   induction m <;> intros k <;> simp
-  case fvar y' => by_cases h : y = y' <;> simp [h]; aesop
+  case fvar y' => split <;> aesop
   case lam ih => exact ih mem
   all_goals aesop
 
@@ -145,7 +141,7 @@ lemma open_fresh_preserve_not_fvar {k x y} (m : Term X C) : x ∉ m.fv → x ≠
   intros mem neq
   revert k
   induction m <;> intros k <;> simp
-  case bvar n'  => by_cases h : k = n' <;> simp [h]; aesop
+  case bvar n'  => split <;> aesop
   case fvar => aesop
   case lam ih => exact ih mem
   all_goals aesop
@@ -155,10 +151,7 @@ lemma subst_preserve_not_fvar {x y} (m n : Term X C) : x ∉ m.fv ∪ n.fv → x
   intros mem
   simp at mem
   induction m <;> simp
-  case fvar y' => 
-    by_cases h : y = y' <;> simp [h]
-    simp [mem]
-    aesop
+  case fvar y' => split <;> simp [mem]; aesop
   case lam ih => exact ih mem
   all_goals aesop
 
@@ -166,7 +159,7 @@ lemma open_close_to_subst (m : Term X C) (x y : X) (k : ℕ) : LC m → m ⟦k �
   intros m_lc
   revert k
   induction' m_lc <;> intros k <;> simp
-  case fvar x' => by_cases h : x = x' <;> simp [h]
+  case fvar x' => split <;> simp
   case app ih_l ih_r => exact ⟨ih_l _, ih_r _⟩
   case pair ih_l ih_r => exact ⟨ih_l _, ih_r _⟩
   case lam xs t x_mem ih =>
@@ -189,7 +182,7 @@ omit [Atom X] in
 lemma close_var_not_fvar_rec (x) (k) (t : Term X C) : x ∉ (t⟦k ↜ x⟧).fv := by
   revert k
   induction t <;> intros k <;> simp
-  case fvar x' => by_cases h : x = x' <;> simp [h] 
+  case fvar x' => split <;> simp_all
   case lam ih => exact ih (k + 1)
   all_goals aesop
 
@@ -202,7 +195,7 @@ lemma close_open (x : X) (t : Term X C) (k : ℕ) : LC t → t⟦k ↜ x⟧⟦k 
   intros lc_t
   revert k
   induction lc_t <;> intros k <;> simp
-  case fvar x' => by_cases h : x = x' <;> simp [h]
+  case fvar x' => split <;> simp_all
   case lam xs t t_open_lc ih => 
     have ⟨y, hy⟩ := atom_fresh_for_set (xs ∪ t.fv ∪ (t⟦k + 1 ↜ x⟧⟦k + 1 ↝ fvar x⟧).fv ∪ {x})
     simp at hy
