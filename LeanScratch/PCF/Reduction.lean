@@ -34,15 +34,29 @@ theorem numeral_open {m : Term X} {k x} : Numeral m → m⟦k ↝ x⟧ = m := by
   induction num <;> simp
   assumption
 
+/-- definition 2.14 -/
+inductive Value : Term X → Prop
+| lam (t) : LC (lam t) → Value (lam t)
+| num {n} : Numeral n → Value n
+
+-- Values are locally closed
+@[aesop safe]
+theorem value_lc {V : Term X} : Value V → LC V := by 
+  intros val
+  induction val
+  case lam => assumption
+  case num num => exact numeral_lc num
+
 /-- definition 2.5 -/
 inductive Step : Term X → Term X → Prop
-| β {M N} : LC (lam M) → LC N → Step (app (lam M) N) (M ^ N)
+| β {M N} : LC (lam M) → Value N → Step (app (lam M) N) (M ^ N)
+| ξ_app_l {M M' N} : LC N → Step M M' → Step (app M N) (app M' N)
+| ξ_app_r {M N N'} : Value M → Step N N' → Step (app M N) (app M N')
 | fix {M} : M.LC → Step (fix M) (app M (fix M))
 | pred_zero : Step (pred zero) zero
 | pred_succ {n} : Numeral n → Step (pred (succ n)) n
 | ifzero_zero {M N} : M.LC → N.LC → Step (ifzero zero M N) M
 | ifzero_succ {n M N} : Numeral n → M.LC → N.LC → Step (ifzero (succ n) M N) N
-| ξ_app {M₁ M₂ N} : N.LC → Step M₁ M₂ → Step (app M₁ N) (app M₂ N)
 | ξ_succ {M₁ M₂} : Step M₁ M₂ → Step (succ M₁) (succ M₂)
 | ξ_pred {M₁ M₂} : Step M₁ M₂ → Step (pred M₁) (pred M₂)
 | ξ_ifzero {M₁ M₂} (N₁ N₂) :  Step M₁ M₂ → N₁.LC → N₂.LC → Step (ifzero M₁ N₁ N₂) (ifzero M₁ N₁ N₂)
@@ -59,26 +73,26 @@ theorem Step_lc_l {M N : Term X} (step : M ▷ N) : LC M := by
   case ifzero_succ num _ _ =>
     constructor
     exact numeral_lc num
-  all_goals assumption
+  all_goals aesop
 
 theorem Step_lc_r {M N : Term X} (step : M ▷ N) [DecidableEq X] [Atom X] : LC N := by
   induction step
-  case β => apply beta_lc <;> assumption
+  case β => apply beta_lc <;> aesop
   case pred_succ num => exact numeral_lc num
   case fix => repeat (constructor; assumption)
   case ξ_ifzero step _ _ _ => 
     constructor
     exact Step_lc_l step
     all_goals assumption
-  all_goals (try constructor <;> assumption)
-  repeat assumption
+  all_goals (try constructor <;> aesop)
+  assumption
+  assumption
 
 -- TODO: free conditions
 /-- definition 2.12 -/
 inductive BigStep : Term X → Term X → Prop
-| fvar (x) : BigStep (fvar x) (fvar x)
-| lam (t) : LC (lam t) → BigStep (lam t) (lam t)
-| app {M E N V} : LC E → BigStep M (lam E) → (BigStep (E ^ N) V) → BigStep (app M N) V
+| lam  (t) : LC (lam t) → BigStep (lam t) (lam t)
+| β {t3 v2 v3 t1 t2} : BigStep t1 (lam t3) → BigStep t2 v2 → BigStep (t3 ^ v2) v3 → BigStep (app t1 t2) v3
 | fix {M V} : BigStep (app M (fix M)) V → BigStep (fix M) V
 | zero : BigStep zero zero
 | succ {M n} : Numeral n → BigStep M n → BigStep (succ M) (succ n)
@@ -89,40 +103,20 @@ inductive BigStep : Term X → Term X → Prop
 
 notation:39 t " ⇓ " t' => BigStep t t'
 
-theorem BigStep_lc_l {M N : Term X} (step : M ⇓ N) : LC M := by
-  induction step
-  case fvar => constructor
-  case lam => assumption
-  case app ih_r => sorry
-  case fix ih => 
-    constructor
-    cases ih
-    assumption
-  all_goals constructor <;> assumption
-
-/-- definition 2.14 -/
-inductive Value : Term X → Prop
-| var (x) : Value (fvar x)
-| lam (t) : LC (lam t) → Value (lam t)
-| num {n} : Numeral n → Value n
-
--- Values are locally closed
-theorem value_lc {V : Term X} : Value V → LC V := by 
+/-- big step semantics are reflexive on values -/
+lemma BigStep_value_refl {V : Term X} : Value V → BigStep V V := by
   intros val
   induction val
-  case var => constructor
-  case lam => assumption
-  case num num => exact numeral_lc num
+  case lam => constructor; assumption
+  case num num => induction num <;> constructor <;> assumption
 
 /-- lemma 2.15 -/
 lemma BigStep_value {M V : Term X} : (M ⇓ V) → Value V := by
   intros bigstep
   induction bigstep
-  case fvar => constructor
   case lam t => 
     apply Value.lam
     assumption
-  case app => assumption
   case fix => assumption
   case zero => repeat constructor
   case succ num _ _ => 
@@ -132,16 +126,12 @@ lemma BigStep_value {M V : Term X} : (M ⇓ V) → Value V := by
   case pred_succ num _ _ => constructor; assumption
   case ifzero_zero => assumption
   case ifzero_succ => assumption
+  case β => assumption
 
 /-- lemma 2.16 (i) -/
 lemma value_no_step {V : Term X} : Value V → ¬(∃N, V ▷ N) := by
   intros val
   induction val
-  case var x =>
-    intros step
-    cases step
-    case intro x' step =>
-    cases step
   case num n num =>
     intros step
     obtain ⟨n', step⟩ := step
@@ -162,9 +152,6 @@ lemma bigstep_unique (V N : Term X) : Value V → (V ⇓ N) → V = N := by
   intros val
   revert N
   induction val <;> intros N step
-  case var x =>
-    cases step
-    rfl
   case num n num =>
     revert N V
     induction num <;> intros V N step
@@ -186,19 +173,19 @@ lemma BigStep_deterministic {M V W : Term X} : (M ⇓ V) → (M ⇓ W) → V = W
   intros vstep
   revert W
   induction vstep <;> intros W wstep
-  case app M A B C lc_lam_A bstep_lam_A bstep_open ih_l ih_r => 
-    apply ih_r
+  case β ih' ih'' ih =>
+    apply ih
     cases wstep
-    case a.app D _lc_lam_D bstep_lam_D bstep_open' =>
-    cases (ih_l bstep_lam_D)
-    exact bstep_open'
+    case a.β s s' _ =>
+    cases (ih' s)
+    rw [ih'' s']
+    assumption
   case fix A B step_B ih =>
     cases wstep
     apply ih
     assumption
   case succ ih => cases wstep; aesop
   case zero => cases wstep; aesop
-  case fvar x => cases wstep; aesop
   case lam => cases wstep; aesop
   case pred_zero ih =>   
     cases wstep
@@ -220,35 +207,47 @@ lemma BigStep_deterministic {M V W : Term X} : (M ⇓ V) → (M ⇓ W) → V = W
       apply ih_r
       assumption
 
-theorem redex_app_l_cong {M M' N : Term X} : (M ▷* M') → LC N → (app M N ▷* app M' N) := by
-  intros redex lc_N 
-  induction' redex
+
+theorem step_app_l_cong {M M' N : Term X} : (M ▷* M') → LC N → (app M N ▷* app M' N) := by
+  intros step lc_N 
+  induction' step
   case refl => rfl
-  case tail ih r => exact Relation.ReflTransGen.tail r (Step.ξ_app lc_N ih)
+  case tail ih r => exact Relation.ReflTransGen.tail r (Step.ξ_app_l lc_N ih)
+
+theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → Value N → (app N M ▷* app N M') := by
+  intros step val 
+  induction' step
+  case refl => rfl
+  case tail ih r => exact Relation.ReflTransGen.tail r (Step.ξ_app_r val ih)
 
 open Relation.ReflTransGen in
-/-- exercise 2.18 -/
-theorem BigStep_to_closure_Step {M V : Term X} : (M ⇓ V) → (M ▷* V) := by
-  intros bstep
-  induction bstep
-  case fvar => rfl
-  case lam => rfl
-  case app => sorry
-  case fix => sorry
-  case zero => rfl
-  case succ => sorry
-  case pred_zero M step_zero ih => sorry
-  case pred_succ => sorry
-  case ifzero_zero => sorry
-  case ifzero_succ => sorry
+/-- exercise 2.18 (i) -/
+theorem big_to_many_small {M V : Term X} : (M ⇓ V) → (M ▷* V) := sorry
 
-theorem Step_BigStep_value {M N V : Term X} : (M ▷ N) → (N ⇓ V) → (M ⇓ V) := sorry
+/-- exercise 2.18 (ii) -/
+theorem small_to_big {M N V : Term X} : (M ▷ N) → (N ⇓ V) → (M ⇓ V) := sorry
 
-theorem ClosureStep_BigStep_value (M N V : Term X) : (M ▷* N) → (N ⇓ V) → (M ⇓ V) := by
+--/-- exercise 2.18 (iii) -/
+theorem many_small_to_big {M N V : Term X} : (M ▷* N) → (N ⇓ V) → (M ⇓ V) := by
   intros closure
   induction closure <;> intros bigstep
   case refl => assumption
-  case tail step ih => exact ih $ Step_BigStep_value step bigstep
+  case tail step ih => exact ih (small_to_big step bigstep)
+
+theorem many_small_value_to_big {M V : Term X} : Value V → (M ▷* V) → (M ⇓ V) := by
+  intros val steps
+  apply many_small_to_big steps
+  exact BigStep_value_refl val
+
+/-- a nice way to state this as one theorem -/
+theorem BigStep_Equivalence {t v : Term X} : (t ⇓ v) ↔ (t ▷* v) ∧ Value v := by
+  constructor
+  · intros big
+    constructor
+    exact big_to_many_small big
+    exact BigStep_value big
+  · intros h
+    exact many_small_value_to_big h.2 h.1
 
 /-- exercise 2.9 -/
 def add_n (n : Term X) : Term X := fix $ lam $ lam $ ifzero (bvar 0) n (succ $ app (bvar 1) (pred (bvar 0)))
@@ -281,89 +280,5 @@ theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n
     exact ok
     aesop
 
--- TODO: clean this up lol
-theorem add_n_zero (n : Term X) (num : Numeral n) [DecidableEq X] : app (add_n n) zero ▷*  n := by
-  simp only [add_n]
-  have body_lc : ((bvar 0).ifzero n ((bvar 1).app (bvar 0).pred).succ).lam.lam.LC := by
-    apply LC.lam ∅
-    intros f _
-    apply LC.lam {f}
-    intros
-    constructor
-    constructor
-    repeat rw [numeral_open num]
-    exact numeral_lc num
-    constructor
-    constructor
-    constructor
-    constructor
-    constructor
-  trans
-  · apply Relation.ReflTransGen.head
-    apply Step.ξ_app LC.zero
-    apply Step.fix body_lc
-    rfl
-  trans
-  · apply Relation.ReflTransGen.head
-    apply Step.ξ_app LC.zero
-    apply Step.β
-    exact body_lc
-    exact LC.fix body_lc
-    rfl
-  trans
-  · apply Relation.ReflTransGen.head
-    apply Step.β
-    apply LC.lam ∅
-    intros f _
-    constructor
-    constructor
-    repeat rw [numeral_open num]
-    exact numeral_lc num
-    constructor
-    constructor
-    constructor
-    apply LC.lam {f}
-    intros y _
-    constructor
-    intros y' mem
-    constructor
-    constructor
-    repeat rw [numeral_open num]
-    exact numeral_lc num
-    simp
-    constructor
-    constructor
-    constructor
-    constructor
-    constructor
-    exact {}
-    constructor
-    constructor
-    constructor
-    rfl
-  simp
-  trans
-  · apply Relation.ReflTransGen.head
-    apply Step.ifzero_zero
-    repeat rw [numeral_open num]
-    exact numeral_lc num
-    constructor
-    constructor
-    constructor
-    apply LC.lam ∅
-    intros x1 _
-    apply LC.lam {x1}
-    intros x2 _
-    constructor
-    constructor
-    repeat rw [numeral_open num]
-    exact numeral_lc num
-    constructor
-    constructor
-    constructor
-    constructor
-    constructor
-    constructor
-    constructor
-    rfl
-  repeat rw [numeral_open num]
+-- TODO: revist after finishing the above proofs
+theorem add_n_zero (n : Term X) (num : Numeral n) [DecidableEq X] : app (add_n n) zero ▷* n := sorry
