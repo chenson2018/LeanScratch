@@ -12,8 +12,15 @@ import LeanScratch.DeBruijn.Reduction
 import LeanScratch.DeBruijn.Shifting
 -/
 
+/-
 import LeanScratch.LocallyNameless.Untyped.Basic
 import LeanScratch.LocallyNameless.Untyped.Reduction
 import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
 import LeanScratch.LocallyNameless.STLC.Typing
+-/
+
+import LeanScratch.PCF.Basic
+import LeanScratch.PCF.Properties
+import LeanScratch.PCF.Reduction
+
 --import LeanScratch.LocallyNameless.Models
