@@ -51,7 +51,7 @@ theorem value_lc {V : Term X} : Value V → LC V := by
 inductive Step : Term X → Term X → Prop
 | β {M N} : LC (lam M) → Value N → Step (app (lam M) N) (M ^ N)
 | ξ_app_l {M M' N} : LC N → Step M M' → Step (app M N) (app M' N)
-| ξ_app_r {M N N'} : Value M → Step N N' → Step (app M N) (app M N')
+| ξ_app_r {M N N'} : LC M → Step N N' → Step (app M N) (app M N')
 | fix {M} : M.LC → Step (fix M) (app M (fix M))
 | pred_zero : Step (pred zero) zero
 | pred_succ {n} : Numeral n → Step (pred (succ n)) n
@@ -214,7 +214,7 @@ theorem step_app_l_cong {M M' N : Term X} : (M ▷* M') → LC N → (app M N �
   case refl => rfl
   case tail ih r => exact Relation.ReflTransGen.tail r (Step.ξ_app_l lc_N ih)
 
-theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → Value N → (app N M ▷* app N M') := by
+theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → LC N → (app N M ▷* app N M') := by
   intros step val 
   induction' step
   case refl => rfl
@@ -222,10 +222,144 @@ theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → Value N → (app N M
 
 open Relation.ReflTransGen in
 /-- exercise 2.18 (i) -/
-theorem big_to_many_small {M V : Term X} : (M ⇓ V) → (M ▷* V) := sorry
+theorem big_to_many_small {M V : Term X} : (M ⇓ V) → (M ▷* V) := by
+  intros h
+  induction h
+  case lam => rfl
+  case zero => rfl
+  case succ M n num big ih => sorry
+  all_goals sorry
+
+lemma big_open_val (t1 v2 r : Term X) :
+  (∃ L, ∀ x ∉ (L : Finset X), LC (t1 ^ fvar x)) → 
+  Value v2 → 
+  (t1 ^ v2 ⇓ r) → 
+  (app (lam t1) v2 ⇓ r) 
+  := by
+  intros cond lc op
+  constructor
+  constructor
+  have ⟨L, cond⟩ := cond
+  exact LC.lam L t1 cond
+  case v2 => exact v2
+  exact BigStep_value_refl lc
+  exact op
 
 /-- exercise 2.18 (ii) -/
-theorem small_to_big {M N V : Term X} : (M ▷ N) → (N ⇓ V) → (M ⇓ V) := sorry
+theorem small_to_big {M N V : Term X} : (M ▷ N) → (N ⇓ V) → (M ⇓ V) := by
+  intros rt rt'
+  have vv : Value V := BigStep_value rt'
+  revert V
+  induction rt <;> intros V big val
+  case β lc_lam _ => 
+    apply big_open_val
+    cases lc_lam
+    case a.lam xs _ =>
+      exists xs
+    assumption
+    assumption
+  case ξ_app_l ih => 
+    cases big
+    cases val
+    case β.lam => 
+      apply BigStep.β
+      apply ih
+      assumption
+      apply BigStep_value
+      assumption
+      assumption
+      assumption
+    case β.num => 
+      apply BigStep.β
+      apply ih
+      assumption
+      apply BigStep_value
+      assumption
+      assumption
+      assumption
+  case ξ_app_r ih => 
+    cases big
+    cases val
+    case β.lam =>
+      apply BigStep.β
+      assumption
+      apply ih
+      assumption
+      apply BigStep_value
+      assumption
+      assumption
+    case β.num =>
+      apply BigStep.β
+      assumption
+      apply ih
+      assumption
+      apply BigStep_value
+      assumption
+      assumption
+  case pred_zero =>
+    cases val
+    cases big
+    case num num =>
+      cases num
+      case zero => exact BigStep.pred_zero big
+      case succ => cases big
+  case pred_succ n num =>
+    cases val
+    cases num
+    cases big
+    cases big
+    case num num' =>
+    exact BigStep.pred_succ num' (BigStep.succ num' big)
+  case fix M lc_M =>
+    cases big
+    case β t3 v2 h1 h2 h3 =>
+    exact BigStep.fix (BigStep.β h1 h2 h3)
+  case ifzero_zero =>
+    constructor
+    assumption
+    constructor
+    assumption
+  case ifzero_succ =>
+    apply BigStep.ifzero_succ
+    assumption
+    assumption
+    constructor
+    assumption
+    apply BigStep_value_refl
+    apply Value.num
+    assumption
+    assumption
+  case ξ_succ step ih => 
+    cases big
+    cases val
+    constructor
+    assumption
+    apply ih
+    assumption
+    apply Value.num
+    assumption
+  case ξ_pred ih => 
+    cases big
+    case pred_zero =>
+      constructor
+      apply ih
+      assumption
+      assumption
+    case pred_succ =>
+      apply BigStep.pred_succ
+      assumption
+      cases val
+      apply ih
+      assumption
+      constructor
+      constructor
+      assumption
+      apply ih
+      assumption
+      constructor
+      constructor
+      assumption
+  case ξ_ifzero => exact big
 
 --/-- exercise 2.18 (iii) -/
 theorem many_small_to_big {M N V : Term X} : (M ▷* N) → (N ⇓ V) → (M ⇓ V) := by
@@ -281,4 +415,90 @@ theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n
     aesop
 
 -- TODO: revist after finishing the above proofs
-theorem add_n_zero (n : Term X) (num : Numeral n) [DecidableEq X] : app (add_n n) zero ▷* n := sorry
+theorem add_n_zero (n : Term X) (num : Numeral n) [DecidableEq X] : app (add_n n) zero ▷*  n := sorry
+/-
+  simp only [add_n]
+  have body_lc : ((bvar 0).ifzero n ((bvar 1).app (bvar 0).pred).succ).lam.lam.LC := by
+    apply LC.lam ∅
+    intros f _
+    apply LC.lam {f}
+    intros
+    constructor
+    constructor
+    repeat rw [numeral_open num]
+    exact numeral_lc num
+    constructor
+    constructor
+    constructor
+    constructor
+    constructor
+  trans
+  · apply Relation.ReflTransGen.head
+    apply Step.ξ_app_l LC.zero
+    apply Step.fix body_lc
+    rfl
+  trans
+  · apply Relation.ReflTransGen.head
+    apply Step.ξ_app_l LC.zero
+    apply Step.β
+    exact body_lc
+    exact LC.fix body_lc
+    rfl
+  trans
+  · apply Relation.ReflTransGen.head
+    apply Step.β
+    apply LC.lam ∅
+    intros f _
+    constructor
+    constructor
+    repeat rw [numeral_open num]
+    exact numeral_lc num
+    constructor
+    constructor
+    constructor
+    apply LC.lam {f}
+    intros y _
+    constructor
+    intros y' mem
+    constructor
+    constructor
+    repeat rw [numeral_open num]
+    exact numeral_lc num
+    simp
+    constructor
+    constructor
+    constructor
+    constructor
+    constructor
+    exact {}
+    constructor
+    constructor
+    constructor
+    rfl
+  simp
+  trans
+  · apply Relation.ReflTransGen.head
+    apply Step.ifzero_zero
+    repeat rw [numeral_open num]
+    exact numeral_lc num
+    constructor
+    constructor
+    constructor
+    apply LC.lam ∅
+    intros x1 _
+    apply LC.lam {x1}
+    intros x2 _
+    constructor
+    constructor
+    repeat rw [numeral_open num]
+    exact numeral_lc num
+    constructor
+    constructor
+    constructor
+    constructor
+    constructor
+    constructor
+    constructor
+    rfl
+  repeat rw [numeral_open num]
+-/
