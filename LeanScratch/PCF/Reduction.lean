@@ -51,7 +51,7 @@ theorem value_lc {V : Term X} : Value V → LC V := by
 inductive Step : Term X → Term X → Prop
 | β {M N} : LC (lam M) → Value N → Step (app (lam M) N) (M ^ N)
 | ξ_app_l {M M' N} : LC N → Step M M' → Step (app M N) (app M' N)
-| ξ_app_r {M N N'} : LC M → Step N N' → Step (app M N) (app M N')
+| ξ_app_r {M N N'} : Value M → Step N N' → Step (app M N) (app M N')
 | fix {M} : M.LC → Step (fix M) (app M (fix M))
 | pred_zero : Step (pred zero) zero
 | pred_succ {n} : Numeral n → Step (pred (succ n)) n
@@ -214,7 +214,7 @@ theorem step_app_l_cong {M M' N : Term X} : (M ▷* M') → LC N → (app M N �
   case refl => rfl
   case tail ih r => exact Relation.ReflTransGen.tail r (Step.ξ_app_l lc_N ih)
 
-theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → LC N → (app N M ▷* app N M') := by
+theorem step_app_r_cong {M M' N : Term X} : (M ▷* M') → Value N → (app N M ▷* app N M') := by
   intros step val 
   induction' step
   case refl => rfl
