@@ -21,6 +21,7 @@ import LeanScratch.LocallyNameless.STLC.Typing
 
 import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
-import LeanScratch.PCF.Reduction
+import LeanScratch.PCF.BigStep
+import LeanScratch.PCF.Semantics
 
 --import LeanScratch.LocallyNameless.Models
