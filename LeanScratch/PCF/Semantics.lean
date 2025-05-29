@@ -109,8 +109,7 @@ def g_3_16 : WithBot ℕ → WithBot ℕ
 
 lemma g_3_16_cont : ωScottContinuous g_3_16 := sorry
 
--- TODO: does this make sense at all???
--- TODO: is this the right thing for the exponent???
+@[simp]
 def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
 | nat => ⟨WithBot ℕ, WithBot.ωcpo_flat ℕ⟩
 | arrow σ τ => by
@@ -119,7 +118,7 @@ def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
     exists (σ_ty → τ_ty)
     exact instOmegaCompletePartialOrderForall
 
--- TODO: order of products is correct???
+@[simp]
 def List.interp : List (X × Ty) → Σ T, OmegaCompletePartialOrder T
 | [] => ⟨WithBot Empty, WithBot.ωcpo_flat Empty⟩
 | (_,σ) :: tl => by
@@ -140,28 +139,25 @@ def bot_s : WithBot ℕ → WithBot ℕ
 #eval (· + 1) <$> some 1
 #check (Nat.add 1 <$> ·)
 
+notation "⟦" Γ "⟧" => Sigma.fst (List.interp Γ)
+notation "⟦" σ "⟧" => Sigma.fst (Ty.interp σ)
+
 -- TODO: instance wrangling
 def Der.interp 
     [DecidableEq X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
-    : (Γ ⊢ M ∶ σ) → (∃ f : Γ.interp.fst → σ.interp.fst, ωScottContinuous f)
+    : (Γ ⊢ M ∶ σ) → (∃ f : ⟦Γ⟧ → ⟦σ⟧, ωScottContinuous f)
     := by
     intros der
     induction der
     case zero Γ =>
-      constructor
-      case w =>
-        simp [Ty.interp]
-        intros
-        exact 0
-      case h =>
-        simp
-        -- TODO: constant functions are continuous?
-        simp [ωScottContinuous, ScottContinuousOn]
-        intros chain nonempty dir G lub
-        simp_all only [Set.Nonempty.image_const, isLUB_singleton]
+      simp only [Ty.interp]
+      refine ⟨λ _ => 0, ?_⟩
+      intros _ _ _ _ _ _
+      simp_all only [Set.Nonempty.image_const, isLUB_singleton]
     case succ Γ _ _ ih =>
       have ⟨f, fcon⟩ := ih
-      simp [Ty.interp] at f
+      -- TODO: get notation to work here
+      simp only [Ty.interp] at f
       exists (bot_s ∘ f)
       refine ωScottContinuous.comp ?_ fcon
       unfold bot_s
