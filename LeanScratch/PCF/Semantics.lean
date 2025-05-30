@@ -135,14 +135,21 @@ def bot_s : WithBot ℕ → WithBot ℕ
 | ⊥ => ⊥
 | n => n + 1
 
+theorem bot_s_cont : ωScottContinuous bot_s := by
+  intros _ _ _ _ _ _
+  simp_all [DirectedOn, IsLUB, IsLeast, upperBounds, lowerBounds, bot_s]
+  constructor
+  · sorry
+  · sorry
+
 -- alternate ways to write if I hit issues...
 #eval (· + 1) <$> some 1
 #check (Nat.add 1 <$> ·)
 
+-- TODO: get notation to work here
 notation "⟦" Γ "⟧" => Sigma.fst (List.interp Γ)
 notation "⟦" σ "⟧" => Sigma.fst (Ty.interp σ)
 
--- TODO: instance wrangling
 def Der.interp 
     [DecidableEq X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
     : (Γ ⊢ M ∶ σ) → (∃ f : ⟦Γ⟧ → ⟦σ⟧, ωScottContinuous f)
@@ -156,15 +163,7 @@ def Der.interp
       simp_all only [Set.Nonempty.image_const, isLUB_singleton]
     case succ Γ _ _ ih =>
       have ⟨f, fcon⟩ := ih
-      -- TODO: get notation to work here
-      simp only [Ty.interp] at f
-      exists (bot_s ∘ f)
-      refine ωScottContinuous.comp ?_ fcon
-      unfold bot_s
-      simp [ωScottContinuous, ScottContinuousOn]
-      intros chain nonempty dir G lub
-      simp_all [IsLUB, IsLeast, DirectedOn, upperBounds, lowerBounds]
-      sorry
+      exact ⟨bot_s ∘ f, ωScottContinuous.comp bot_s_cont fcon⟩
     case pred => sorry
     case ifzero => sorry
     case fix  => sorry
