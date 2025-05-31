@@ -68,6 +68,30 @@ theorem WithBot.bot_le {α : Type} (a : WithBot α) : ⊥ ≤ a := by
   left
   rfl
 
+theorem WithBot.coe_nle_bot {α : Type} (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
+  simp_all only [instWithBot.le_flat, coe_ne_bot, or_self, not_false_eq_true]
+
+theorem WithBot.coe_nle_coe {α : Type} (a₁ a₂ : α) (h : a₁ ≠ a₂) : ¬ a₁ ≤ (a₂ : WithBot α) := by
+  simp_all only [ne_eq, instWithBot.le_flat, coe_ne_bot, coe_inj, or_self, not_false_eq_true]
+
+theorem WithBot.coe_le_coe_iff_eq {α : Type} (a₁ a₂ : α) : a₁ = a₂ ↔ a₁ ≤ (a₂ : WithBot α) := by
+  simp_all only [instWithBot.le_flat, coe_ne_bot, coe_inj, false_or]
+
+theorem WithBot.coe_le_iff_eq {α : Type} (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
+  simp_all only [instWithBot.le_flat, coe_ne_bot, false_or]
+
+theorem Withbot.coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
+  cases a'
+  case bot =>
+    left
+    exact WithBot.coe_nle_bot a
+  case coe a' =>
+    by_cases h : (a = a')
+    · subst h
+      simp_all only [instWithBot.le_flat, le_refl, not_true_eq_false, or_true]
+    · left
+      exact WithBot.coe_nle_coe a a' h
+
 instance WithBot.ωcpo_flat (α : Type) [DecidableEq α] : OmegaCompletePartialOrder (WithBot α) where
   ωSup chain := if chain 0 = ⊥ ∧ chain 1 ≠ ⊥ then chain 1 else chain 0
   le_ωSup chain i := by
@@ -136,11 +160,30 @@ def bot_s : WithBot ℕ → WithBot ℕ
 | n => n + 1
 
 theorem bot_s_cont : ωScottContinuous bot_s := by
-  intros _ _ _ _ _ _
+  intros D im w nonemp d' lub
   simp_all [DirectedOn, IsLUB, IsLeast, upperBounds, lowerBounds, bot_s]
+  obtain ⟨chain, chain_im⟩ := im
+  obtain ⟨bound, low⟩ := lub
   constructor
-  · sorry
-  · sorry
+  · intros d mem
+    subst chain_im
+    simp_all only [Set.mem_range, exists_exists_eq_and, forall_exists_index, forall_apply_eq_imp_iff]
+    obtain ⟨i, deq⟩ := mem
+    have leq := bound i
+    rw [deq] at leq
+    induction d <;> simp
+    apply WithBot.bot_le
+    next v =>
+      induction d' <;> simp
+      case bot => 
+        exfalso
+        exact WithBot.coe_nle_bot v leq
+      case coe v' => 
+        rw [(WithBot.coe_le_coe_iff_eq v v').mpr leq]
+  · intros d h
+    subst chain_im
+    simp_all only [Set.mem_range, exists_exists_eq_and, forall_exists_index, forall_apply_eq_imp_iff]
+    sorry
 
 -- alternate ways to write if I hit issues...
 #eval (· + 1) <$> some 1
