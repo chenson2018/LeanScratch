@@ -160,7 +160,7 @@ def bot_s : WithBot ℕ → WithBot ℕ
 | n => n + 1
 
 theorem bot_s_cont : ωScottContinuous bot_s := by
-  intros D im w nonemp d' lub
+  intros D im nonemp dir d' lub
   simp_all [DirectedOn, IsLUB, IsLeast, upperBounds, lowerBounds, bot_s]
   obtain ⟨chain, chain_im⟩ := im
   obtain ⟨bound, low⟩ := lub
