@@ -185,6 +185,12 @@ theorem bot_s_cont : ωScottContinuous bot_s := by
     simp_all only [Set.mem_range, exists_exists_eq_and, forall_exists_index, forall_apply_eq_imp_iff]
     sorry
 
+def bot_p : WithBot ℕ → WithBot ℕ
+| ⊥ => ⊥
+| some n => some (n - 1)
+
+theorem bot_p_cont : ωScottContinuous bot_p := sorry
+
 -- alternate ways to write if I hit issues...
 #eval (· + 1) <$> some 1
 #check (Nat.add 1 <$> ·)
@@ -193,8 +199,15 @@ theorem bot_s_cont : ωScottContinuous bot_s := by
 notation "⟦" Γ "⟧" => Sigma.fst (List.interp Γ)
 notation "⟦" σ "⟧" => Sigma.fst (Ty.interp σ)
 
+def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
+| (⊥,_,_) => ⊥
+| (0,ret,_) => ret
+| (some (_ + 1),_,ret) => ret
+
+theorem bot_cond_cont : ωScottContinuous bot_cond := sorry
+
 def Der.interp 
-    [DecidableEq X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
+    [DecidableEq X] [Atom X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
     : (Γ ⊢ M ∶ σ) → (∃ f : ⟦Γ⟧ → ⟦σ⟧, ωScottContinuous f)
     := by
     intros der
@@ -207,9 +220,50 @@ def Der.interp
     case succ Γ _ _ ih =>
       have ⟨f, fcon⟩ := ih
       exact ⟨bot_s ∘ f, ωScottContinuous.comp bot_s_cont fcon⟩
-    case pred => sorry
-    case ifzero => sorry
-    case fix  => sorry
-    case app => sorry
-    case var => sorry
-    case lam => sorry
+    case pred Γ _ _ ih  =>
+      have ⟨f, fcon⟩ := ih
+      exact ⟨bot_p ∘ f, ωScottContinuous.comp bot_p_cont fcon⟩
+    case ifzero ih_a ih_b ih_c => 
+      have ⟨f_a, fcon_a⟩ := ih_a
+      have ⟨f_b, fcon_b⟩ := ih_b
+      have ⟨f_c, fcon_c⟩ := ih_c
+      refine ⟨λ Γ ↦ bot_cond (f_a Γ, f_b Γ, f_c Γ), ?_⟩
+      -- might need to write apply₃, or maybe better to make it applications instead of product?
+      sorry
+    case fix ih => 
+      have ⟨f, fcon⟩ := ih
+      simp [Ty.interp] at f 
+      refine ⟨?_ ∘ f, ?_⟩
+      -- TODO: find where fixpoints of CPOs are defined, I know it's there somewhere...
+      all_goals sorry
+    case app ih_l ih_r => 
+      have ⟨fl, fl_con⟩ := ih_l
+      have ⟨fr, fr_con⟩ := ih_r
+      refine ⟨λ γ ↦ (fl γ) (fr γ), ?_⟩
+      -- TODO: check the category definition for this
+      sorry
+    case var Γ x σ ok mem => 
+      induction mem
+      case head => 
+        refine ⟨Prod.fst, ?_⟩
+        simp [Ty.interp]
+        sorry
+      case tail Γ p Γ' mem' ih=>
+        obtain ⟨x', σ'⟩ := p
+        have ok' : Ok Γ' := by cases ok; assumption
+        have ⟨f, fcon⟩ := ih ok'
+        refine ⟨?_, ?_⟩
+        simp [Ty.interp]
+        intros p
+        apply f
+        exact p.snd
+        sorry
+    case lam xs _ _ _ _ _ ih => 
+      have ⟨x, mem⟩ := atom_fresh_for_set xs
+      have ⟨f, fcon⟩ := ih x mem 
+      refine ⟨?_, ?_⟩
+      simp only [Ty.interp]
+      simp only [List.interp] at f
+      exact (λ Γ σ ↦ f (σ, Γ))
+      -- TODO: check the category definition for this
+      sorry
