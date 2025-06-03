@@ -1,6 +1,7 @@
 import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 import LeanScratch.PCF.BigStep
+import LeanScratch.PCF.SmallStep
 
 import Mathlib.Order.OmegaCompletePartialOrder
 
@@ -20,6 +21,34 @@ inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Prop
 | lam (L : Finset X) {Γ t σ τ} : (∀ x ∉ L, Der ((x,σ) :: Γ) (t ^ fvar x) τ) → Der Γ (lam t) (σ ⤳ τ) 
 
 notation:50 Γ " ⊢ " t " ∶" T => Der Γ t T
+
+theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n n ∶ nat ⤳ nat := by
+  simp only [add_n]  
+  apply Der.fix
+  apply Der.lam ∅
+  intros f f_mem
+  apply Der.lam {f}
+  intros y y_mem
+  simp
+  have ok : Ok [(y, nat), (f, nat ⤳ nat)] := by
+    repeat constructor
+    all_goals aesop
+  constructor
+  constructor
+  exact ok
+  aesop
+  · induction num <;> simp
+    exact Der.zero [(y, nat), (f, nat ⤳ nat)]
+    case a.a.succ m _ ih => exact Der.succ [(y, nat), (f, nat ⤳ nat)] (m⟦1 ↝ fvar f⟧⟦0 ↝ fvar y⟧) ih
+  · constructor
+    refine Der.app [(y, nat), (f, nat ⤳ nat)] (fvar f) (fvar y).pred nat nat ?_ ?_
+    constructor
+    exact ok
+    aesop
+    constructor
+    constructor
+    exact ok
+    aesop
 
 -- We'll be using the "flat" ω-cpo ℕ_⊥, so for clarity remove these instances that also inherit the order of ℕ
 attribute [-instance] WithBot.le

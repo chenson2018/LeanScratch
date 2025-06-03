@@ -37,16 +37,24 @@ theorem value_lc {V : Term X} : Value V → LC V := by
 /-- definition 2.12 -/
 inductive BigStep : Term X → Term X → Prop
 | lam  (t) : LC (lam t) → BigStep (lam t) (lam t)
-| β {t3 v2 v3 t1 t2} : BigStep t1 (lam t3) → BigStep t2 v2 → BigStep (t3 ^ v2) v3 → BigStep (app t1 t2) v3
+-- | β {t3 v2 v3 t1 t2} : BigStep t1 (lam t3) → BigStep t2 v2 → BigStep (t3 ^ v2) v3 → BigStep (app t1 t2) v3
+| β {E V M N} : LC N → BigStep M (lam E) → BigStep (E ^ N) V → BigStep (app M N) V
 | fix {M V} : BigStep (app M (fix M)) V → BigStep (fix M) V
 | zero : BigStep zero zero
 | succ {M n} : Numeral n → BigStep M n → BigStep (succ M) (succ n)
 | pred_zero {M} : BigStep M zero → BigStep (pred M) zero
 | pred_succ {M n} : Numeral n → BigStep M (succ n) → BigStep (pred M) n
-| ifzero_zero {M N₁} N₂ {V} : N₂.LC → BigStep M zero → BigStep N₁ V → BigStep (ifzero M N₁ N₂) V
-| ifzero_succ {M} N₁ {N₂ V n} : N₁.LC → Numeral n → BigStep M (succ n) → BigStep N₂ V → BigStep (ifzero M N₁ N₂) V
+| ifzero_zero {M N₁} N₂ {V} : N₁.LC → N₂.LC → BigStep M zero → BigStep N₁ V → BigStep (ifzero M N₁ N₂) V
+| ifzero_succ {M} N₁ {N₂ V n} : N₁.LC → N₂.LC → Numeral n → BigStep M (succ n) → BigStep N₂ V → BigStep (ifzero M N₁ N₂) V
 
 notation:39 t " ⇓ " t' => BigStep t t'
+
+lemma BigStep_lc_l {M N : Term X} : (M ⇓ N) → LC M := by
+  intros big
+  induction big
+  case' fix ih => cases ih
+  case lam => assumption
+  all_goals constructor <;> assumption
 
 /-- big step semantics are reflexive on values -/
 lemma BigStep_value_refl {V : Term X} : Value V → BigStep V V := by
@@ -102,9 +110,8 @@ lemma BigStep_deterministic {M V W : Term X} : (M ⇓ V) → (M ⇓ W) → V = W
   case β ih' ih'' ih =>
     apply ih
     cases wstep
-    case a.β s s' _ =>
-    cases (ih' s)
-    rw [ih'' s']
+    case a.β s s' _ _ =>
+    cases (ih'' s')
     assumption
   case fix A B step_B ih =>
     cases wstep
@@ -125,10 +132,10 @@ lemma BigStep_deterministic {M V W : Term X} : (M ⇓ V) → (M ⇓ W) → V = W
   case ifzero_zero A B C D step_zero setp_D ih_l ih_r => 
     cases wstep
     case ifzero_zero => apply ih_r; assumption
-    case ifzero_succ contra _ _ => cases (ih_l contra)
+    case ifzero_succ contra _ _ _ => cases (ih_l contra)
   case ifzero_succ step_succ n _ _ _ ih_l ih_r => 
     cases wstep
-    case ifzero_zero step_zero _ _  => cases (ih_l step_zero)
+    case ifzero_zero step_zero _ _ _ => cases (ih_l step_zero)
     case ifzero_succ =>
       apply ih_r
       assumption
