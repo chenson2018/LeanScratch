@@ -37,7 +37,6 @@ theorem value_lc {V : Term X} : Value V → LC V := by
 /-- definition 2.12 -/
 inductive BigStep : Term X → Term X → Prop
 | lam  (t) : LC (lam t) → BigStep (lam t) (lam t)
--- | β {t3 v2 v3 t1 t2} : BigStep t1 (lam t3) → BigStep t2 v2 → BigStep (t3 ^ v2) v3 → BigStep (app t1 t2) v3
 | β {E V M N} : LC N → BigStep M (lam E) → BigStep (E ^ N) V → BigStep (app M N) V
 | fix {M V} : BigStep (app M (fix M)) V → BigStep (fix M) V
 | zero : BigStep zero zero
