@@ -109,6 +109,10 @@ theorem WithBot.coe_le_coe_iff_eq {α : Type} (a₁ a₂ : α) : a₁ = a₂ ↔
 theorem WithBot.coe_le_iff_eq {α : Type} (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
   simp_all only [instWithBot.le_flat, coe_ne_bot, false_or]
 
+theorem WithBot.neq_bot_ex_coe {α : Type} {a : WithBot α} : a ≠ ⊥ → ∃ val, a = some val := by
+  intros neq
+  induction a <;> aesop
+
 theorem Withbot.coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
   cases a'
   case bot =>
@@ -121,46 +125,50 @@ theorem Withbot.coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨
     · left
       exact WithBot.coe_nle_coe a a' h
 
+/-- once a chain has a non-⊥ value, that must be terminal -/
+theorem WithBot.chain_terminal_val {α} {chain : Chain (WithBot α)} {i : ℕ} {a : α} : 
+    chain i = ↑a → (∀ i', i ≤ i' → chain i' = ↑a) := by
+  intros eq i' leq
+  have mono := chain.monotone leq
+  cases (Withbot.coe_nle a (chain i')) <;> aesop
+
+def const_chain {α} : Chain (WithBot α) where
+  toFun _ := ⊥
+  monotone' := monotone_const
+
+def nonconst_chain {α} (val : α) (sup_i : ℕ) : Chain (WithBot α) where
+  toFun i := if i < sup_i then ⊥ else ↑val
+  monotone' := by
+    simp [Monotone]
+    intros
+    split
+    apply WithBot.bot_le
+    split
+    linarith
+    rfl
+
+-- TODO: I need to prove that these are the only options.... maybe a better way to state this
+theorem chain_const? {α} (chain : Chain (WithBot α)) : chain = const_chain ∨ ∃ val switch, chain = nonconst_chain val switch := sorry
+
 instance WithBot.ωcpo_flat (α : Type) [DecidableEq α] : OmegaCompletePartialOrder (WithBot α) where
-  ωSup chain := if chain 0 = ⊥ ∧ chain 1 ≠ ⊥ then chain 1 else chain 0
-  le_ωSup chain i := by
-    by_cases c₀ : chain 0 = ⊥ <;> by_cases c₁ : chain 1 = ⊥ <;> simp [c₀, c₁]
-    all_goals sorry
+  ωSup chain := sorry
+  le_ωSup chain i := sorry
   ωSup_le chain x bound := sorry
-
--- product examples work as expected
--- TODO: the exercises on continuity here...
-inductive Y | y deriving DecidableEq, Repr
-inductive Z | z deriving DecidableEq, Repr
-
-open Y Z
-
-#synth OmegaCompletePartialOrder (WithBot Z × WithBot Y)
-
-#eval ((⊥ , ⊥) : WithBot Z × WithBot Y) ≤ (↑z, ⊥)
-#eval ((⊥ , ⊥) : WithBot Z × WithBot Y) ≤ (⊥, ↑y)
-#eval ((⊥, ↑y) : WithBot Z × WithBot Y) ≤ (↑z, ↑y)
-#eval ((↑z, ⊥) : WithBot Z × WithBot Y) ≤ (↑z, ↑y)
-
-
-#synth LE (ℕ × ℕ)
-#eval (0, 98) ≤ (0, 99)
-#eval (1 : WithBot ℕ) ≤ ⊥ 
-
--- this is for exponents?
-#synth OmegaCompletePartialOrder (WithBot Z → WithBot Y)
-
-def brack (x y : Fin 2) : Fin 2 → Fin 2
-| 0 => x
-| 1 => y
-
-#synth LE (Fin 2 → Fin 2)
-
-def g_3_16 : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥ 
-| some n => some (n + 1)
-
-lemma g_3_16_cont : ωScottContinuous g_3_16 := sorry
+--  ωSup chain := if chain 0 = ⊥ ∧ chain 1 ≠ ⊥ then chain 1 else chain 0
+--  le_ωSup chain i := by
+--    by_cases c₀ : chain 0 = ⊥ <;> simp [c₀]
+--    · by_cases c₁ : chain 1 = ⊥ <;> simp [c₁]
+--      · sorry
+--      · cases i
+--        case neg.zero =>
+--          rw [c₀]
+--          apply WithBot.bot_le
+--        case neg.succ i' =>
+--          have ⟨n, eq⟩ :=  WithBot.neq_bot_ex_coe c₁
+--          rw [eq,  WithBot.chain_terminal_val eq (i'+1) (by aesop)]
+--    · have ⟨n, eq⟩ :=  WithBot.neq_bot_ex_coe c₀
+--      have const := WithBot.chain_terminal_val eq
+--      simp_all only [coe_ne_bot, not_false_eq_true, zero_le, le_refl, forall_const]
 
 @[simp]
 def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
