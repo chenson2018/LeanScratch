@@ -245,7 +245,26 @@ section cont_lemmas
 variable {α β γ : Type} 
 variable [OmegaCompletePartialOrder α] [OmegaCompletePartialOrder β] [OmegaCompletePartialOrder γ]
 
-theorem π₁_cont : ωScottContinuous (@Prod.fst α β) := sorry
+theorem π₁_cont : ωScottContinuous (@Prod.fst α β) := by
+  intros D range nonempty dir p lub
+  simp [IsLUB, IsLeast, upperBounds, lowerBounds, DirectedOn, Set.range] at *
+  obtain ⟨a, b⟩ := p
+  obtain ⟨lub_l, lub_r⟩ := lub
+  constructor
+  · intros a' b' mem
+    simp
+    cases (lub_l a' b' mem)
+    assumption
+  · intros a' h
+    have ⟨res, _⟩ := lub_r a' b ?_
+    exact res
+    intros a'' b'' mem
+    constructor
+    apply h
+    apply mem
+    have ⟨_, res⟩ := lub_l a'' b'' mem
+    exact res
+
 theorem π₂_cont : ωScottContinuous (@Prod.snd α β) := sorry
 
 theorem eval_cont : ωScottContinuous (λ ((f, a) : ((α → β) × α)) ↦ f a) := sorry
