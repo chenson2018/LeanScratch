@@ -296,15 +296,6 @@ theorem prod_cont
   (hf : ωScottContinuous f) (hg : ωScottContinuous g)
   : ωScottContinuous (λ c ↦ (f c, g c)) := sorry
 
-theorem tri_prod_cont 
-  {f g h : α → β}
-  (hf : ωScottContinuous f) 
-  (hg : ωScottContinuous g) 
-  (hh : ωScottContinuous h) 
-  : ωScottContinuous (λ x : α ↦ (f x, g x, h x)) := by
-    apply prod_cont hf
-    apply prod_cont hg hh
-
 -- TODO: weirdness about using the direct statement... leaving a placeholder for now
 #check fixedPoints.lfp_eq_sSup_iterate
 def μ : (α → α) → α := sorry
@@ -312,7 +303,8 @@ theorem μ_cont : ωScottContinuous (@μ α) := sorry
 
 end cont_lemmas
 
-def Der.interp 
+-- TODO: this being in Prop causes problems for stating soundness/completeness
+theorem Der.interp 
     [DecidableEq X] [Atom X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
     : (Γ ⊢ M ∶ σ) → (∃ f : ⟦Γ⟧ → ⟦σ⟧, ωScottContinuous f)
     := by
@@ -334,7 +326,7 @@ def Der.interp
       have ⟨f_b, fcon_b⟩ := ih_b
       have ⟨f_c, fcon_c⟩ := ih_c
       refine ⟨bot_cond ∘ (λ Γ ↦ (f_a Γ, f_b Γ, f_c Γ)), ?_⟩
-      exact ωScottContinuous.comp bot_cond_cont (tri_prod_cont fcon_a fcon_b fcon_c)
+      exact ωScottContinuous.comp bot_cond_cont $ prod_cont fcon_a (prod_cont fcon_b fcon_c)
     case fix ih => 
       have ⟨f, fcon⟩ := ih
       simp [Ty.interp] at f 
