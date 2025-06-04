@@ -185,7 +185,8 @@ def List.interp : List (X × Ty) → Σ T, OmegaCompletePartialOrder T
 | (_,σ) :: tl => by
     have ⟨σ_ty, σ_cpo⟩ := σ.interp
     have ⟨tl_ty, tl_cpo⟩ := tl.interp
-    exists (σ_ty × tl_ty)
+    --exists (σ_ty × tl_ty)
+    exists (tl_ty × σ_ty)
     exact Prod.instOmegaCompletePartialOrder
 
 -- I am astounded this worked so easily
@@ -228,10 +229,6 @@ def bot_p : WithBot ℕ → WithBot ℕ
 
 theorem bot_p_cont : ωScottContinuous bot_p := sorry
 
--- alternate ways to write if I hit issues...
-#eval (· + 1) <$> some 1
-#check (Nat.add 1 <$> ·)
-
 -- TODO: get notation to work here
 notation "⟦" Γ "⟧" => Sigma.fst (List.interp Γ)
 notation "⟦" σ "⟧" => Sigma.fst (Ty.interp σ)
@@ -242,6 +239,43 @@ def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
 | (some (_ + 1),_,ret) => ret
 
 theorem bot_cond_cont : ωScottContinuous bot_cond := sorry
+
+section cont_lemmas
+
+variable {α β γ : Type} 
+variable [OmegaCompletePartialOrder α] [OmegaCompletePartialOrder β] [OmegaCompletePartialOrder γ]
+
+theorem π₁_cont : ωScottContinuous (@Prod.fst α β) := sorry
+theorem π₂_cont : ωScottContinuous (@Prod.snd α β) := sorry
+
+theorem eval_cont : ωScottContinuous (λ ((f, a) : ((α → β) × α)) ↦ f a) := sorry
+
+theorem curry_cont
+  {f : (γ × α) → β}
+  (hf : ωScottContinuous f)
+  : ωScottContinuous (λ c a ↦ f (c, a))
+  := sorry
+
+theorem prod_cont
+  {f : γ → α} {g : γ → β}
+  (hf : ωScottContinuous f) (hg : ωScottContinuous g)
+  : ωScottContinuous (λ c ↦ (f c, g c)) := sorry
+
+theorem tri_prod_cont 
+  {f g h : α → β}
+  (hf : ωScottContinuous f) 
+  (hg : ωScottContinuous g) 
+  (hh : ωScottContinuous h) 
+  : ωScottContinuous (λ x : α ↦ (f x, g x, h x)) := by
+    apply prod_cont hf
+    apply prod_cont hg hh
+
+-- TODO: weirdness about using the direct statement... leaving a placeholder for now
+#check fixedPoints.lfp_eq_sSup_iterate
+def μ : (α → α) → α := sorry
+theorem μ_cont : ωScottContinuous (@μ α) := sorry
+
+end cont_lemmas
 
 def Der.interp 
     [DecidableEq X] [Atom X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
@@ -254,53 +288,37 @@ def Der.interp
       refine ⟨λ _ => 0, ?_⟩
       intros _ _ _ _ _ _
       simp_all only [Set.Nonempty.image_const, isLUB_singleton]
-    case succ Γ _ _ ih =>
+    case succ ih =>
       have ⟨f, fcon⟩ := ih
       exact ⟨bot_s ∘ f, ωScottContinuous.comp bot_s_cont fcon⟩
-    case pred Γ _ _ ih  =>
+    case pred ih =>
       have ⟨f, fcon⟩ := ih
       exact ⟨bot_p ∘ f, ωScottContinuous.comp bot_p_cont fcon⟩
     case ifzero ih_a ih_b ih_c => 
       have ⟨f_a, fcon_a⟩ := ih_a
       have ⟨f_b, fcon_b⟩ := ih_b
       have ⟨f_c, fcon_c⟩ := ih_c
-      refine ⟨λ Γ ↦ bot_cond (f_a Γ, f_b Γ, f_c Γ), ?_⟩
-      -- might need to write apply₃, or maybe better to make it applications instead of product?
-      sorry
+      refine ⟨bot_cond ∘ (λ Γ ↦ (f_a Γ, f_b Γ, f_c Γ)), ?_⟩
+      exact ωScottContinuous.comp bot_cond_cont (tri_prod_cont fcon_a fcon_b fcon_c)
     case fix ih => 
       have ⟨f, fcon⟩ := ih
       simp [Ty.interp] at f 
-      refine ⟨?_ ∘ f, ?_⟩
-      -- TODO: find where fixpoints of CPOs are defined, I know it's there somewhere...
-      all_goals sorry
+      exact ⟨μ ∘ f, ωScottContinuous.comp μ_cont fcon⟩
     case app ih_l ih_r => 
       have ⟨fl, fl_con⟩ := ih_l
       have ⟨fr, fr_con⟩ := ih_r
-      refine ⟨λ γ ↦ (fl γ) (fr γ), ?_⟩
-      -- TODO: check the category definition for this
-      sorry
+      refine ⟨(λ (f, a) ↦ f a) ∘ (λ γ ↦ ((fl γ), (fr γ))), ωScottContinuous.comp ?_ ?_⟩
+      exact eval_cont
+      exact prod_cont fl_con fr_con
     case var Γ x σ ok mem => 
       induction mem
-      case head => 
-        refine ⟨Prod.fst, ?_⟩
-        simp [Ty.interp]
-        sorry
+      case head => refine ⟨Prod.snd, π₂_cont⟩
       case tail Γ p Γ' mem' ih=>
         obtain ⟨x', σ'⟩ := p
         have ok' : Ok Γ' := by cases ok; assumption
         have ⟨f, fcon⟩ := ih ok'
-        refine ⟨?_, ?_⟩
-        simp [Ty.interp]
-        intros p
-        apply f
-        exact p.snd
-        sorry
-    case lam xs _ _ _ _ _ ih => 
+        exact ⟨f ∘ Prod.fst, ωScottContinuous.comp fcon π₁_cont⟩
+    case lam xs Γ _ σ τ _ ih => 
       have ⟨x, mem⟩ := atom_fresh_for_set xs
       have ⟨f, fcon⟩ := ih x mem 
-      refine ⟨?_, ?_⟩
-      simp only [Ty.interp]
-      simp only [List.interp] at f
-      exact (λ Γ σ ↦ f (σ, Γ))
-      -- TODO: check the category definition for this
-      sorry
+      exact ⟨(λ Γ σ ↦ f (Γ, σ)), curry_cont fcon⟩
