@@ -255,7 +255,6 @@ theorem π₁_cont : ωScottContinuous (@Prod.fst α β) := by
   obtain ⟨lub_l, lub_r⟩ := lub
   constructor
   · intros a' b' mem
-    simp
     cases (lub_l a' b' mem)
     assumption
   · intros a' h
@@ -274,7 +273,6 @@ theorem π₂_cont : ωScottContinuous (@Prod.snd α β) := by
   obtain ⟨lub_l, lub_r⟩ := lub
   constructor
   · intros b' a' mem
-    simp
     cases (lub_l a' b' mem)
     assumption
   · intros b' h
