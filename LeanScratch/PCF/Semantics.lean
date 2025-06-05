@@ -242,6 +242,9 @@ theorem bot_cond_cont : ωScottContinuous bot_cond := sorry
 
 section cont_lemmas
 
+-- TODO: I think most (all?) of these exist already in Mathlib, but I can't get
+-- the dependent Sigma versions to work...
+
 variable {α β γ : Type} 
 variable [OmegaCompletePartialOrder α] [OmegaCompletePartialOrder β] [OmegaCompletePartialOrder γ]
 
@@ -294,7 +297,15 @@ theorem curry_cont
 theorem prod_cont
   {f : γ → α} {g : γ → β}
   (hf : ωScottContinuous f) (hg : ωScottContinuous g)
-  : ωScottContinuous (λ c ↦ (f c, g c)) := sorry
+  : ωScottContinuous (λ c ↦ (f c, g c)) := by
+  intros D range nonempty dir c lub
+  simp [IsLUB, IsLeast, upperBounds, lowerBounds, DirectedOn, Set.range] at *
+  obtain ⟨lub_l, lub_r⟩ := lub
+  constructor
+  · intros c' mem
+    constructor <;> [apply hf.monotone; apply hg.monotone] <;> apply lub_l mem
+  · intros a b h
+    sorry
 
 -- TODO: weirdness about using the direct statement... leaving a placeholder for now
 #check fixedPoints.lfp_eq_sSup_iterate
