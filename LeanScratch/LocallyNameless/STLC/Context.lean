@@ -34,3 +34,15 @@ theorem Ok.perm  {xs ys : List (α × β)} (h : xs.Perm ys) : Ok xs → Ok ys :=
       aesop
   case trans a b c p_ab p_bc ih_ab ih_bc => exact ih_bc (ih_ab ok_xs)
 
+theorem Ok.mem_head_eq {xs : List (α × β)} {x σ σ'} : Ok ((x, σ') :: xs) → (x, σ) ∈ (x, σ') :: xs → σ' = σ := by
+  intros ok mem
+  induction xs
+  case nil => aesop
+  case cons hd tl ih =>
+    have h : (x, σ) ∉ hd :: tl := by
+      cases ok
+      aesop
+    aesop
+
+theorem Ok.mem_head_neq {xs : List (α × β)} {x x' σ σ'} : 
+  Ok ((x', σ') :: xs) → (x, σ) ∈ (x', σ') :: xs → x ≠ x' → (x, σ) ∈ xs := by aesop

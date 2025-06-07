@@ -2,6 +2,8 @@ import LeanScratch.PCF.Basic
 
 variable {X: Type} [DecidableEq X] [Atom X]
 
+open Atom
+
 namespace Term
 
 omit [DecidableEq X] [Atom X] in
@@ -22,14 +24,15 @@ lemma open_lc_aux (e : Term X) : ∀ (j v i u),
   case ifzero ih_a ih_b ih_c =>
     obtain ⟨ha, hb, hc⟩ := h
     exact ⟨ih_a j v i u neq ha, ih_b j v i u neq hb, ih_c j v i u neq hc⟩
-  
+ 
+omit [DecidableEq X] in
 lemma open_lc (k t) (e : Term X) : LC e → e = e⟦k ↝ t⟧ := by
   intros e_lc
   revert k
   induction e_lc <;> intros k <;> simp
   case lam xs e _ ih =>
     simp at *
-    have ⟨y, ymem⟩ := atom_fresh_for_set xs
+    have ⟨y, ymem⟩ := fresh_ext xs
     apply open_lc_aux e 0 (fvar y) (k+1) t <;> aesop
   all_goals aesop
 
@@ -86,7 +89,7 @@ theorem beta_lc {M N : Term X} : LC (lam M) → LC N → LC (M ^ N) := by
   cases m_lc
   case lam xs mem =>
     intros n_lc
-    have ⟨y, ymem⟩ := atom_fresh_for_set (xs ∪ M.fv)
+    have ⟨y, ymem⟩ := fresh_ext (xs ∪ M.fv)
     simp at ymem
     cases ymem
     rw [subst_intro y N M]
@@ -162,7 +165,7 @@ lemma open_close_to_subst (m : Term X) (x y : X) (k : ℕ) : LC m → m ⟦k ↜
   case fvar x' => split <;> simp
   case app ih_l ih_r => exact ⟨ih_l _, ih_r _⟩
   case lam xs t x_mem ih =>
-    have ⟨x', x'_mem⟩ := atom_fresh_for_set ({x} ∪ {y} ∪ t.fv ∪ xs)
+    have ⟨x', x'_mem⟩ := fresh_ext ({x} ∪ {y} ∪ t.fv ∪ xs)
     have s := subst_open_var x' x (fvar y) t ?_ (by constructor)
     simp at *
     rw [←open_close x' (t⟦k+1 ↜ x⟧⟦k+1 ↝ fvar y⟧) 0 ?f₁, ←open_close x' (t[x := fvar y]) 0 ?f₂]
@@ -196,7 +199,7 @@ lemma close_open (x : X) (t : Term X) (k : ℕ) : LC t → t⟦k ↜ x⟧⟦k �
   induction lc_t <;> intros k <;> simp
   case fvar x' => split <;> simp_all
   case lam xs t t_open_lc ih => 
-    have ⟨y, hy⟩ := atom_fresh_for_set (xs ∪ t.fv ∪ (t⟦k + 1 ↜ x⟧⟦k + 1 ↝ fvar x⟧).fv ∪ {x})
+    have ⟨y, hy⟩ := fresh_ext (xs ∪ t.fv ∪ (t⟦k + 1 ↜ x⟧⟦k + 1 ↝ fvar x⟧).fv ∪ {x})
     simp at hy
     obtain ⟨q1, q2, q3, q4⟩ := hy
     refine open_injective y _ _ q3 q2 ?_

@@ -2,15 +2,16 @@ import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 import LeanScratch.PCF.BigStep
 import LeanScratch.PCF.SmallStep
+import LeanScratch.LocallyNameless.STLC.Context
 
 import Mathlib.Order.OmegaCompletePartialOrder
 
-open Term Ty
+open Term Ty Atom
 
 variable {X : Type}
 
 /-- definition 2.3, the actual derivations -/
-inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Prop
+inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Type
 | zero (Γ)   : Der Γ zero nat
 | succ (Γ M) : Der Γ M nat → Der Γ (succ M) nat
 | pred (Γ M) : Der Γ M nat → Der Γ (pred M) nat
@@ -22,6 +23,7 @@ inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Prop
 
 notation:50 Γ " ⊢ " t " ∶" T => Der Γ t T
 
+/-
 theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n n ∶ nat ⤳ nat := by
   simp only [add_n]  
   apply Der.fix
@@ -49,6 +51,7 @@ theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n
     constructor
     exact ok
     aesop
+-/
 
 -- We'll be using the "flat" ω-cpo ℕ_⊥, so for clarity remove these instances that also inherit the order of ℕ
 attribute [-instance] WithBot.le
@@ -312,40 +315,71 @@ theorem μ_cont : ωScottContinuous (@μ α) := sorry
 
 end cont_lemmas
 
--- TODO: this being in Prop causes problems for stating soundness/completeness
-theorem Der.interp 
-    [DecidableEq X] [Atom X] {Γ : List (X × Ty)} {σ : Ty} {M : Term X} 
-    : (Γ ⊢ M ∶ σ) → (∃ f : ⟦Γ⟧ → ⟦σ⟧, ωScottContinuous f)
-    := by
-    intros der
-    induction der
-    case zero Γ =>
-      simp only [Ty.interp]
-      refine ⟨λ _ => 0, ?_⟩
-      intros _ _ _ _ _ _
-      simp_all only [Set.Nonempty.image_const, isLUB_singleton]
-    case succ ih =>
-      have ⟨f, fcon⟩ := ih
-      exact ⟨bot_s ∘ f, ωScottContinuous.comp bot_s_cont fcon⟩
-    case pred ih =>
-      have ⟨f, fcon⟩ := ih
-      exact ⟨bot_p ∘ f, ωScottContinuous.comp bot_p_cont fcon⟩
-    case ifzero ih_a ih_b ih_c => 
-      have ⟨f_a, fcon_a⟩ := ih_a
-      have ⟨f_b, fcon_b⟩ := ih_b
-      have ⟨f_c, fcon_c⟩ := ih_c
-      refine ⟨bot_cond ∘ (λ Γ ↦ (f_a Γ, f_b Γ, f_c Γ)), ?_⟩
-      exact ωScottContinuous.comp bot_cond_cont $ prod_cont fcon_a (prod_cont fcon_b fcon_c)
-    case fix ih => 
-      have ⟨f, fcon⟩ := ih
-      simp [Ty.interp] at f 
-      exact ⟨μ ∘ f, ωScottContinuous.comp μ_cont fcon⟩
-    case app ih_l ih_r => 
-      have ⟨fl, fl_con⟩ := ih_l
-      have ⟨fr, fr_con⟩ := ih_r
-      refine ⟨(λ (f, a) ↦ f a) ∘ (λ γ ↦ ((fl γ), (fr γ))), ωScottContinuous.comp ?_ ?_⟩
-      exact eval_cont
-      exact prod_cont fl_con fr_con
+variable [DecidableEq X] [Atom X]
+
+@[simp]
+def Term.size : Term X → ℕ 
+| bvar _ => 1
+| fvar _ | zero => 0
+| lam e1 | fix e1 | pred e1 | succ e1 => e1.size + 1
+| app l r => l.size + r.size + 1
+| ifzero t₁ t₂ t₃ => t₁.size + t₂.size + t₃.size + 1
+
+theorem Term.open_size {M : Term X} {x} : M⟦0 ↝ fvar x⟧.size < M.size := sorry    
+
+def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦σ⟧) := 
+  match Γ, der with
+  | _, zero _ => λ _ => some 0
+  | _, succ _ _ f => bot_s ∘ f.interp
+  | _, pred _ _ f => bot_p ∘ f.interp
+  | _, ifzero _ _ _ _ fa fb fc => bot_cond ∘ (λ Γ ↦ (fa.interp Γ, fb.interp Γ, fc.interp Γ))
+  | _, fix _ _ _ f => μ ∘ f.interp
+  | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.interp γ, fr.interp γ))
+  | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
+        simp only [List.interp]
+        refine if h : x = x' then ?_ else ?_
+        · have eq : σ' = σ := by
+            rw [h] at mem
+            exact Ok.mem_head_eq ok mem
+          rw [eq]
+          exact Prod.snd
+        · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
+          cases ok
+          assumption
+  -- TODO: this is problematic for termination
+  | _, @lam _ _ xs _ M _ _ ih => by
+      have der_ih := ih (fresh xs) (fresh_unique xs)
+      sorry
+    --(λ Γ σ ↦  (ih (fresh xs) (fresh_unique xs)).interp (Γ, σ))
+--  termination_by 
+--    Γ.length + M.size
+--  decreasing_by
+--    all_goals simp only [Term.size, List.length]
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+--    linarith
+    
+    
+--    match Γ with
+--    | (x',σ') ::tl => by
+--        simp only [List.interp]
+--        refine if h : x = x' then ?_ else ?_
+--        · have eq : σ' = σ := by
+--            rw [h] at mem
+--            exact Ok.mem_head_eq ok mem
+--          rw [eq]
+--          exact Prod.snd
+--        · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
+--          cases ok
+--          assumption
+
+/-
     case var Γ x σ ok mem => 
       induction mem
       case head => refine ⟨Prod.snd, π₂_cont⟩
@@ -354,7 +388,56 @@ theorem Der.interp
         have ok' : Ok Γ' := by cases ok; assumption
         have ⟨f, fcon⟩ := ih ok'
         exact ⟨f ∘ Prod.fst, ωScottContinuous.comp fcon π₁_cont⟩
-    case lam xs Γ _ σ τ _ ih => 
-      have ⟨x, mem⟩ := atom_fresh_for_set xs
-      have ⟨f, fcon⟩ := ih x mem 
-      exact ⟨(λ Γ σ ↦ f (Γ, σ)), curry_cont fcon⟩
+-/
+
+theorem interp_cont {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ωScottContinuous der.interp := by
+  induction der <;> simp [Der.interp]
+  case zero =>
+    intros _ _ _ _ _ _
+    simp_all only [Set.mem_range, Set.Nonempty.image_const, isLUB_singleton]
+  case succ con =>
+    exact ωScottContinuous.comp bot_s_cont con 
+  case pred con =>
+    exact ωScottContinuous.comp bot_p_cont con 
+  case ifzero con_a con_b con_c =>
+    exact ωScottContinuous.comp bot_cond_cont $ prod_cont con_a (prod_cont con_b con_c)
+  case fix con =>
+    exact ωScottContinuous.comp μ_cont con  
+  case app fl_con fr_con =>
+    exact ωScottContinuous.comp eval_cont (prod_cont fl_con fr_con)
+  case var => 
+    sorry
+  case lam xs _ _ _ _ _ ih => 
+    apply curry_cont
+    exact ih (fresh xs) (fresh_unique xs)
+
+def Nat.toTerm : ℕ → Term X
+| 0 => Term.zero
+| n+1 => Term.succ n.toTerm
+
+def Term.toNat : Term X → WithBot ℕ 
+| zero => 0
+| succ n => n.toNat + 1
+| _ => ⊥ 
+
+-- TODO: there's weirdness about the contexts, end up with (λ _ ↦ ...), is that right???
+
+theorem numeral_intep {n : ℕ} (der : [] ⊢ (n.toTerm : Term X) ∶ nat) : der.interp = (λ _ ↦ some n) := by
+  induction n
+  case zero =>
+    simp [Nat.toTerm] at der
+    ext
+    case h Γ_int =>
+      cases der
+      simp only [Der.interp]
+  case succ n ih =>
+    cases der
+    case succ der =>
+    simp only [Der.interp]
+    rw [ih]
+    simp_all only [List.interp, interp]
+    rfl
+
+theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) : der_M.interp = der_N.interp := sorry
+
+theorem adequacy {M : Term X} {Γ} {n : ℕ} (der : Γ ⊢ M ∶ nat) : der.interp = (λ _ ↦ some n) → (M ⇓ M) := sorry

@@ -19,6 +19,8 @@ import LeanScratch.LocallyNameless.Untyped.ConfluenceBeta
 import LeanScratch.LocallyNameless.STLC.Typing
 -/
 
+import LeanScratch.LocallyNameless.STLC.Context
+import LeanScratch.PCF.Atom
 import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 import LeanScratch.PCF.SmallStep

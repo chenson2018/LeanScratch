@@ -1,5 +1,4 @@
-import LeanScratch.LocallyNameless.Atom
-import LeanScratch.LocallyNameless.STLC.Context
+import LeanScratch.PCF.Atom
 
 /-- definition 2.1 -/
 inductive Ty
