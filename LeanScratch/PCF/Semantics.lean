@@ -23,6 +23,13 @@ inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Type
 
 notation:50 Γ " ⊢ " t " ∶" T => Der Γ t T
 
+theorem der_lc [Atom X] [DecidableEq X] {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ) → LC t := by
+  intros der
+  induction der
+  case lam xs _ _ _ _ _ ih => exact LC.lam xs _ (λ x a ↦ ih x a)
+  case app ih_l ih_r => exact LC.app ih_l ih_r
+  all_goals constructor <;> assumption  
+
 /-
 theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n n ∶ nat ⤳ nat := by
   simp only [add_n]  
