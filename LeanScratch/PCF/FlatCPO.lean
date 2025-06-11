@@ -38,7 +38,7 @@ instance le_flat : LE (WithBot α) where
 instance lt_flat : LT (WithBot α) where
   lt a₁ a₂ := a₁ = ⊥ ∧ a₂ ≠ ⊥
 
-theorem bot_le {α : Type} (a : WithBot α) : ⊥ ≤ a := by
+theorem bot_le (a : WithBot α) : ⊥ ≤ a := by
   left
   rfl
 
@@ -77,23 +77,23 @@ noncomputable instance instCompletePartialOrder : CompletePartialOrder (WithBot 
     · exact mem h.choose_spec
     · apply bot_le
 
-theorem coe_nle_bot {α : Type} (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
+theorem coe_nle_bot (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
   simp_all only [le_flat, coe_ne_bot, or_self, not_false_eq_true]
 
-theorem coe_nle_coe {α : Type} (a₁ a₂ : α) (h : a₁ ≠ a₂) : ¬ a₁ ≤ (a₂ : WithBot α) := by
+theorem coe_nle_coe (a₁ a₂ : α) (h : a₁ ≠ a₂) : ¬ a₁ ≤ (a₂ : WithBot α) := by
   simp_all only [ne_eq, le_flat, coe_ne_bot, coe_inj, or_self, not_false_eq_true]
 
-theorem coe_le_coe_iff_eq {α : Type} (a₁ a₂ : α) : a₁ = a₂ ↔ a₁ ≤ (a₂ : WithBot α) := by
+theorem coe_le_coe_iff_eq (a₁ a₂ : α) : a₁ = a₂ ↔ a₁ ≤ (a₂ : WithBot α) := by
   simp_all only [le_flat, coe_ne_bot, coe_inj, false_or]
 
-theorem coe_le_iff_eq {α : Type} (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
+theorem coe_le_iff_eq (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
   simp_all only [le_flat, coe_ne_bot, false_or]
 
-theorem neq_bot_ex_coe {α : Type} {a : WithBot α} : a ≠ ⊥ → ∃ val, a = some val := by
+theorem neq_bot_ex_coe {a : WithBot α} : a ≠ ⊥ → ∃ val, a = some val := by
   intros neq
   induction a <;> aesop
 
-theorem coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
+theorem coe_nle (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
   cases a'
   case bot =>
     left
