@@ -2,7 +2,7 @@ import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 import LeanScratch.PCF.BigStep
 
-open Term Ty
+open Term
 
 variable {X : Type}
 

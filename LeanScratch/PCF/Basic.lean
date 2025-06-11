@@ -1,13 +1,5 @@
 import LeanScratch.PCF.Atom
 
-/-- definition 2.1 -/
-inductive Ty
-| nat   : Ty
-| arrow : Ty → Ty → Ty
-
-open Ty
-infixr:62 " ⤳ " => Ty.arrow
-
 /-- definition 2.3, but for untyped terms -/
 inductive Term (X : Type)
 | bvar : ℕ → Term X

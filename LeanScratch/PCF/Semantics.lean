@@ -2,9 +2,18 @@ import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 import LeanScratch.PCF.BigStep
 import LeanScratch.PCF.SmallStep
+import LeanScratch.PCF.FlatCPO
 import LeanScratch.LocallyNameless.STLC.Context
 
 import Mathlib.Order.OmegaCompletePartialOrder
+
+/-- definition 2.1 -/
+inductive Ty
+| nat   : Ty
+| arrow : Ty → Ty → Ty
+
+open Ty
+infixr:62 " ⤳ " => Ty.arrow
 
 open Term Ty Atom
 
@@ -30,159 +39,9 @@ theorem der_lc [Atom X] [DecidableEq X] {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ)
   case app ih_l ih_r => exact LC.app ih_l ih_r
   all_goals constructor <;> assumption  
 
-/-
-theorem add_n_type (n : Term X) (num : Numeral n) [DecidableEq X] : [] ⊢ add_n n ∶ nat ⤳ nat := by
-  simp only [add_n]  
-  apply Der.fix
-  apply Der.lam ∅
-  intros f f_mem
-  apply Der.lam {f}
-  intros y y_mem
-  simp
-  have ok : Ok [(y, nat), (f, nat ⤳ nat)] := by
-    repeat constructor
-    all_goals aesop
-  constructor
-  constructor
-  exact ok
-  aesop
-  · induction num <;> simp
-    exact Der.zero [(y, nat), (f, nat ⤳ nat)]
-    case a.a.succ m _ ih => exact Der.succ [(y, nat), (f, nat ⤳ nat)] (m⟦1 ↝ fvar f⟧⟦0 ↝ fvar y⟧) ih
-  · constructor
-    refine Der.app [(y, nat), (f, nat ⤳ nat)] (fvar f) (fvar y).pred nat nat ?_ ?_
-    constructor
-    exact ok
-    aesop
-    constructor
-    constructor
-    exact ok
-    aesop
--/
-
--- We'll be using the "flat" ω-cpo ℕ_⊥, so for clarity remove these instances that also inherit the order of ℕ
-attribute [-instance] WithBot.le
-attribute [-instance] WithBot.lt
-attribute [-instance] WithBot.preorder
-attribute [-instance] WithBot.partialOrder
-attribute [-instance] WithBot.semilatticeInf
-attribute [-instance] WithBot.lattice
-attribute [-instance] WithBot.conditionallyCompleteLattice
-attribute [-instance] WithBot.distribLattice
-attribute [-instance] WithBot.linearOrder
-attribute [-instance] WithBot.semilatticeSup
-
 @[simp]
-instance instWithBot.le_flat (α : Type) : LE (WithBot α) where
-  le a₁ a₂ := a₁ = ⊥ ∨ a₁ = a₂
-
-@[simp]
-instance instWithBot.lt_flat (α : Type) : LT (WithBot α) where
-  lt a₁ a₂ := a₁ = ⊥ ∧ a₂ ≠ ⊥
-
--- if the underlying type is decideable, it is with ≤ with bot
-instance {α : Type} [dec : DecidableEq α] : DecidableLE (WithBot α) := by
-  simp [DecidableLE, DecidableRel]
-  intros a₁ a₂
-  cases a₁
-  simp only [true_or]
-  exact instDecidableTrue
-  cases a₂
-  simp
-  exact instDecidableFalse
-  simp
-  apply dec
-
-instance WithBot.preorder_flat (α : Type) : Preorder (WithBot α) where
-  le_refl a := by aesop
-  le_trans a b c ab bc := by aesop
-  lt_iff_le_not_le := by aesop
-
-instance WithBot.partialOrder_flat (α : Type) : PartialOrder (WithBot α) where
-  le_antisymm a b ab ba := by cases ab <;> cases ba <;> aesop
-
-open OmegaCompletePartialOrder
-
-theorem WithBot.bot_le {α : Type} (a : WithBot α) : ⊥ ≤ a := by
-  left
-  rfl
-
-theorem WithBot.coe_nle_bot {α : Type} (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
-  simp_all only [instWithBot.le_flat, coe_ne_bot, or_self, not_false_eq_true]
-
-theorem WithBot.coe_nle_coe {α : Type} (a₁ a₂ : α) (h : a₁ ≠ a₂) : ¬ a₁ ≤ (a₂ : WithBot α) := by
-  simp_all only [ne_eq, instWithBot.le_flat, coe_ne_bot, coe_inj, or_self, not_false_eq_true]
-
-theorem WithBot.coe_le_coe_iff_eq {α : Type} (a₁ a₂ : α) : a₁ = a₂ ↔ a₁ ≤ (a₂ : WithBot α) := by
-  simp_all only [instWithBot.le_flat, coe_ne_bot, coe_inj, false_or]
-
-theorem WithBot.coe_le_iff_eq {α : Type} (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
-  simp_all only [instWithBot.le_flat, coe_ne_bot, false_or]
-
-theorem WithBot.neq_bot_ex_coe {α : Type} {a : WithBot α} : a ≠ ⊥ → ∃ val, a = some val := by
-  intros neq
-  induction a <;> aesop
-
-theorem Withbot.coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
-  cases a'
-  case bot =>
-    left
-    exact WithBot.coe_nle_bot a
-  case coe a' =>
-    by_cases h : (a = a')
-    · subst h
-      simp_all only [instWithBot.le_flat, le_refl, not_true_eq_false, or_true]
-    · left
-      exact WithBot.coe_nle_coe a a' h
-
-/-- once a chain has a non-⊥ value, that must be terminal -/
-theorem WithBot.chain_terminal_val {α} {chain : Chain (WithBot α)} {i : ℕ} {a : α} : 
-    chain i = ↑a → (∀ i', i ≤ i' → chain i' = ↑a) := by
-  intros eq i' leq
-  have mono := chain.monotone leq
-  cases (Withbot.coe_nle a (chain i')) <;> aesop
-
-def const_chain {α} : Chain (WithBot α) where
-  toFun _ := ⊥
-  monotone' := monotone_const
-
-def nonconst_chain {α} (val : α) (sup_i : ℕ) : Chain (WithBot α) where
-  toFun i := if i < sup_i then ⊥ else ↑val
-  monotone' := by
-    simp [Monotone]
-    intros
-    split
-    apply WithBot.bot_le
-    split
-    linarith
-    rfl
-
--- TODO: I need to prove that these are the only options.... maybe a better way to state this
-theorem chain_const? {α} (chain : Chain (WithBot α)) : chain = const_chain ∨ ∃ val switch, chain = nonconst_chain val switch := sorry
-
-instance WithBot.ωcpo_flat (α : Type) [DecidableEq α] : OmegaCompletePartialOrder (WithBot α) where
-  ωSup chain := sorry
-  le_ωSup chain i := sorry
-  ωSup_le chain x bound := sorry
---  ωSup chain := if chain 0 = ⊥ ∧ chain 1 ≠ ⊥ then chain 1 else chain 0
---  le_ωSup chain i := by
---    by_cases c₀ : chain 0 = ⊥ <;> simp [c₀]
---    · by_cases c₁ : chain 1 = ⊥ <;> simp [c₁]
---      · sorry
---      · cases i
---        case neg.zero =>
---          rw [c₀]
---          apply WithBot.bot_le
---        case neg.succ i' =>
---          have ⟨n, eq⟩ :=  WithBot.neq_bot_ex_coe c₁
---          rw [eq,  WithBot.chain_terminal_val eq (i'+1) (by aesop)]
---    · have ⟨n, eq⟩ :=  WithBot.neq_bot_ex_coe c₀
---      have const := WithBot.chain_terminal_val eq
---      simp_all only [coe_ne_bot, not_false_eq_true, zero_le, le_refl, forall_const]
-
-@[simp]
-def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
-| nat => ⟨WithBot ℕ, WithBot.ωcpo_flat ℕ⟩
+noncomputable def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
+| nat => ⟨WithBot ℕ, @CompletePartialOrder.toOmegaCompletePartialOrder _ (@WithBot.instCompletePartialOrder ℕ)⟩
 | arrow σ τ => by
     have ⟨σ_ty, σ_cpo⟩ := σ.interp
     have ⟨τ_ty, τ_cpo⟩ := τ.interp
@@ -190,22 +49,23 @@ def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
     exact instOmegaCompletePartialOrderForall
 
 @[simp]
-def List.interp : List (X × Ty) → Σ T, OmegaCompletePartialOrder T
-| [] => ⟨WithBot Empty, WithBot.ωcpo_flat Empty⟩
+noncomputable def List.interp : List (X × Ty) → Σ T, OmegaCompletePartialOrder T
+| [] => ⟨WithBot Empty, @CompletePartialOrder.toOmegaCompletePartialOrder _ (@WithBot.instCompletePartialOrder Empty) ⟩
 | (_,σ) :: tl => by
     have ⟨σ_ty, σ_cpo⟩ := σ.interp
     have ⟨tl_ty, tl_cpo⟩ := tl.interp
-    --exists (σ_ty × tl_ty)
     exists (tl_ty × σ_ty)
     exact Prod.instOmegaCompletePartialOrder
 
 -- I am astounded this worked so easily
-instance (ty : Ty) : OmegaCompletePartialOrder (ty.interp.fst) := ty.interp.snd
-instance (Γ : List (X × Ty)) : OmegaCompletePartialOrder (Γ.interp.fst) := Γ.interp.snd
+noncomputable instance (ty : Ty) : OmegaCompletePartialOrder (ty.interp.fst) := ty.interp.snd
+noncomputable instance (Γ : List (X × Ty)) : OmegaCompletePartialOrder (Γ.interp.fst) := Γ.interp.snd
 
 def bot_s : WithBot ℕ → WithBot ℕ
 | ⊥ => ⊥
 | n => n + 1
+
+open OmegaCompletePartialOrder
 
 theorem bot_s_cont : ωScottContinuous bot_s := by
   intros D im nonemp dir d' lub
@@ -220,7 +80,7 @@ theorem bot_s_cont : ωScottContinuous bot_s := by
     have leq := bound i
     rw [deq] at leq
     induction d <;> simp
-    apply WithBot.bot_le
+    left; rfl
     next v =>
       induction d' <;> simp
       case bot => 

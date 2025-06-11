@@ -1,10 +1,30 @@
+import Mathlib
 import Mathlib.Order.CompletePartialOrder
 import Mathlib.Order.TypeTags
 import Mathlib.Order.SetNotation
 import Mathlib.Order.WithBot
 
+attribute [-instance] WithBot.le
+attribute [-instance] WithBot.lt
+attribute [-instance] WithBot.preorder
+attribute [-instance] WithBot.partialOrder
+attribute [-instance] WithBot.semilatticeInf
+attribute [-instance] WithBot.lattice
+attribute [-instance] WithBot.conditionallyCompleteLattice
+attribute [-instance] WithBot.distribLattice
+attribute [-instance] WithBot.linearOrder
+attribute [-instance] WithBot.semilatticeSup
+attribute [-instance] WithBot.instSupSet
+
+/-
 -- sanity check that we didn't imoprt another instance
--- #synth OmegaCompletePartialOrder (WithBot ℕ)
+#synth LE (WithBot ℕ)
+#synth LT (WithBot ℕ)
+#synth Preorder (WithBot ℕ)
+#synth PartialOrder (WithBot ℕ)
+#synth SupSet (WithBot ℕ)
+#synth OmegaCompletePartialOrder (WithBot ℕ)
+-/
 
 variable {α : Type}
 
@@ -17,6 +37,10 @@ instance le_flat : LE (WithBot α) where
 @[simp]
 instance lt_flat : LT (WithBot α) where
   lt a₁ a₂ := a₁ = ⊥ ∧ a₂ ≠ ⊥
+
+theorem bot_le {α : Type} (a : WithBot α) : ⊥ ≤ a := by
+  left
+  rfl
 
 instance preorder_flat : Preorder (WithBot α) where
   le_refl a := by aesop
@@ -38,30 +62,47 @@ theorem directed_coe_unique {S : Set (WithBot α)} (dir : DirectedOn WithBot.le_
 
 -- TODO: is this inherently classical?? 
 open scoped Classical in
-noncomputable instance instSupSet : SupSet (WithBot α) where
+noncomputable instance instSupSet_flat : SupSet (WithBot α) where
   sSup s := if h : ∃ v : α, ↑v ∈ s then h.choose else ⊥ 
 
 noncomputable instance instCompletePartialOrder : CompletePartialOrder (WithBot α) where
   lubOfDirected s dir := by
-    constructor <;> intros a mem <;> simp [sSup]
-    · induction a
-      case left.bot => left; rfl
-      case left.coe a =>
-        split
-        case isTrue h =>
-          rw [directed_coe_unique dir mem h.choose_spec]
-        case isFalse h =>
-          simp_all only [not_exists]
-    · simp [upperBounds] at mem
-      induction a
-      · split
-        case right.bot.isTrue h => exact mem h.choose_spec
-        case right.bot.isFalse => rfl
-      · split
-        case right.coe.isTrue h => exact mem h.choose_spec
-        case right.coe.isFalse => left; rfl
+    constructor <;> intros a mem <;> simp [sSup] <;> induction a
+    · apply bot_le
+    all_goals split <;> rename_i h
+    · rw [directed_coe_unique dir mem h.choose_spec]
+    · simp_all only [not_exists]
+    · exact mem h.choose_spec
+    · rfl
+    · exact mem h.choose_spec
+    · apply bot_le
+
+theorem coe_nle_bot {α : Type} (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
+  simp_all only [le_flat, coe_ne_bot, or_self, not_false_eq_true]
+
+theorem coe_nle_coe {α : Type} (a₁ a₂ : α) (h : a₁ ≠ a₂) : ¬ a₁ ≤ (a₂ : WithBot α) := by
+  simp_all only [ne_eq, le_flat, coe_ne_bot, coe_inj, or_self, not_false_eq_true]
+
+theorem coe_le_coe_iff_eq {α : Type} (a₁ a₂ : α) : a₁ = a₂ ↔ a₁ ≤ (a₂ : WithBot α) := by
+  simp_all only [le_flat, coe_ne_bot, coe_inj, false_or]
+
+theorem coe_le_iff_eq {α : Type} (a₁ : α) (a₂ : WithBot α) : a₁ = a₂ ↔ a₁ ≤ a₂ := by
+  simp_all only [le_flat, coe_ne_bot, false_or]
+
+theorem neq_bot_ex_coe {α : Type} {a : WithBot α} : a ≠ ⊥ → ∃ val, a = some val := by
+  intros neq
+  induction a <;> aesop
+
+theorem coe_nle {α : Type} (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
+  cases a'
+  case bot =>
+    left
+    exact WithBot.coe_nle_bot a
+  case coe a' =>
+    by_cases h : (a = a')
+    · subst h
+      simp_all only [le_flat, le_refl, not_true_eq_false, or_true]
+    · left
+      exact WithBot.coe_nle_coe a a' h
 
 end WithBot
-
-#synth CompletePartialOrder (WithBot ℕ)
-#synth OmegaCompletePartialOrder (WithBot ℕ)

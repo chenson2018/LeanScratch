@@ -1,7 +1,7 @@
 import LeanScratch.PCF.Basic
 import LeanScratch.PCF.Properties
 
-open Term Ty
+open Term
 
 variable {X : Type}
 
