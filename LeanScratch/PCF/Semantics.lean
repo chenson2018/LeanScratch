@@ -192,7 +192,23 @@ def Term.size : Term X → ℕ
 | app l r => l.size + r.size + 1
 | ifzero t₁ t₂ t₃ => t₁.size + t₂.size + t₃.size + 1
 
-theorem Term.open_size {M : Term X} {x} : M⟦0 ↝ fvar x⟧.size < M.size := sorry    
+-- TODO: this is not true as stated with the above size function
+-- I want this to prove termination in just the lambda case, so it would be fine
+-- to add some assumptions about containing appropriate bvars for an
+-- abstraction, etc., which I think makes this work??
+theorem Term.open_size {M : Term X} {x} : M⟦0 ↝ fvar x⟧.size < M.size := sorry
+
+/-
+TODO: I have no idea what this error means!
+
+Could just go away after removing sorry from data...
+
+or maybe because of taking Sigma projections
+
+Cannot derive Der.interp._unary.eq_def
+  function expected
+    f a
+-/
 
 def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦σ⟧) := 
   match Γ, der with
@@ -213,49 +229,26 @@ def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦�
         · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
           cases ok
           assumption
-  -- TODO: this is problematic for termination
-  | _, @lam _ _ xs _ M _ _ ih => by
-      have der_ih := ih (fresh xs) (fresh_unique xs)
-      sorry
-    --(λ Γ σ ↦  (ih (fresh xs) (fresh_unique xs)).interp (Γ, σ))
---  termination_by 
---    Γ.length + M.size
---  decreasing_by
---    all_goals simp only [Term.size, List.length]
---    linarith
---    linarith
---    linarith
---    linarith
---    linarith
---    linarith
---    linarith
---    linarith
---    linarith
-    
-    
---    match Γ with
---    | (x',σ') ::tl => by
---        simp only [List.interp]
---        refine if h : x = x' then ?_ else ?_
---        · have eq : σ' = σ := by
---            rw [h] at mem
---            exact Ok.mem_head_eq ok mem
---          rw [eq]
---          exact Prod.snd
---        · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
---          cases ok
---          assumption
-
-/-
-    case var Γ x σ ok mem => 
-      induction mem
-      case head => refine ⟨Prod.snd, π₂_cont⟩
-      case tail Γ p Γ' mem' ih=>
-        obtain ⟨x', σ'⟩ := p
-        have ok' : Ok Γ' := by cases ok; assumption
-        have ⟨f, fcon⟩ := ih ok'
-        exact ⟨f ∘ Prod.fst, ωScottContinuous.comp fcon π₁_cont⟩
--/
+  | _, @lam _ _ xs Γ' M _ _ ih => by
+      have d := ih (fresh xs) (fresh_unique xs)
+      have i := d.interp
+      exact (λ Γ σ ↦  i (Γ, σ))
+  termination_by 
+    Γ.length + M.size
+  decreasing_by
+    all_goals simp only [open', Term.size, List.length]
+    linarith
+    linarith
+    linarith
+    linarith
+    linarith
+    linarith
+    linarith
+    linarith
+    linarith
+    rw [Nat.add_comm M.size _, ←Nat.add_assoc]
+    refine Nat.add_lt_add_left ?_ (Γ'.length + 1)
+    exact open_size
 
 theorem interp_cont {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ωScottContinuous der.interp := by
   induction der <;> simp [Der.interp]
