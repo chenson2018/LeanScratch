@@ -185,6 +185,11 @@ end cont_lemmas
 variable [DecidableEq X] [Atom X]
 
 @[simp]
+def Ty.size : Ty → ℕ
+| nat => 0
+| arrow l r => l.size + r.size + 1
+
+@[simp]
 def Term.size : Term X → ℕ 
 | bvar _ => 1
 | fvar _ | zero => 0
@@ -192,11 +197,21 @@ def Term.size : Term X → ℕ
 | app l r => l.size + r.size + 1
 | ifzero t₁ t₂ t₃ => t₁.size + t₂.size + t₃.size + 1
 
--- TODO: this is not true as stated with the above size function
--- I want this to prove termination in just the lambda case, so it would be fine
--- to add some assumptions about containing appropriate bvars for an
--- abstraction, etc., which I think makes this work??
-theorem Term.open_size {M : Term X} {x} : M⟦0 ↝ fvar x⟧.size < M.size := sorry
+-- TODO: might be more helpful to have a version of this with strict inequality under side conditions
+omit [DecidableEq X] [Atom X] in
+theorem Term.open_size (M : Term X) (k x) : M⟦k ↝ fvar x⟧.size ≤ M.size := by
+  revert k
+  induction M <;> intros k <;> simp
+  case app l r =>
+    have := l k
+    have := r k
+    linarith
+  case ifzero a b c =>
+    have := @a k
+    have := @b k
+    have := @c k
+    linarith
+  all_goals aesop
 
 /-
 TODO: I have no idea what this error means!
@@ -229,26 +244,27 @@ def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦�
         · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
           cases ok
           assumption
-  | _, @lam _ _ xs Γ' M _ _ ih => by
+  | _, @lam _ _ xs Γ' M σ τ ih => by
       have d := ih (fresh xs) (fresh_unique xs)
       have i := d.interp
       exact (λ Γ σ ↦  i (Γ, σ))
   termination_by 
-    Γ.length + M.size
+    Γ.length + M.size + σ.size
   decreasing_by
-    all_goals simp only [open', Term.size, List.length]
+    all_goals simp only [open', Term.size, List.length, Ty.size]
     linarith
     linarith
     linarith
     linarith
     linarith
+    -- adding in type size causes this these to fail
+    -- maybe a measure on derivations could combine these?
+    sorry
+    sorry
+    sorry
     linarith
+    have op := open_size M 0 (fresh xs)
     linarith
-    linarith
-    linarith
-    rw [Nat.add_comm M.size _, ←Nat.add_assoc]
-    refine Nat.add_lt_add_left ?_ (Γ'.length + 1)
-    exact open_size
 
 theorem interp_cont {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ωScottContinuous der.interp := by
   induction der <;> simp [Der.interp]
