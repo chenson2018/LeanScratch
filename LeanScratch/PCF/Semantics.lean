@@ -85,17 +85,31 @@ noncomputable instance TyCPO (ty : Ty) : OmegaCompletePartialOrder ty.interp := 
 noncomputable instance ListCPO (Γ : List (X × Ty)) : OmegaCompletePartialOrder Γ.interp := by
   induction Γ <;> simp [List.interp] <;> infer_instance
 
+noncomputable instance TySupSet (ty : Ty) : SupSet ty.interp := by
+   induction ty <;> simp [Ty.interp] <;> infer_instance
+
+noncomputable instance TyBot (ty : Ty) : Bot ty.interp := by
+  induction ty <;> simp [Ty.interp] <;> infer_instance 
+
 -- TODO: version of this w/o lattice condition??
 #check fixedPoints.lfp_eq_sSup_iterate
-def μ {α} [OmegaCompletePartialOrder α] : (α → α) → α := sorry
 
-def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp → σ.interp := 
+section fixpoint
+open OmegaCompletePartialOrder
+variable {α : Type} (f : α → α) [OmegaCompletePartialOrder α] (hf : ωScottContinuous f)
+variable [SupSet α] [Bot α]
+@[simp]
+def μ := ⨆ (n : ℕ), f^[n] ⊥
+theorem μ_fix : f (μ f) = μ f := sorry
+end fixpoint
+
+noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp → σ.interp := 
   match Γ, der with
   | _, zero _ => λ _ => some 0
   | _, succ _ _ f => bot_s ∘ f.interp
   | _, pred _ _ f => bot_p ∘ f.interp
   | _, ifzero _ _ _ _ fa fb fc => bot_cond ∘ (λ Γ ↦ (fa.interp Γ, fb.interp Γ, fc.interp Γ))
-  | _, fix _ _ _ f => μ ∘ f.interp
+  | _, fix _ _ _ f => (μ ·) ∘ f.interp
   | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.interp γ, fr.interp γ))
   | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
         simp only [List.interp]
@@ -178,7 +192,21 @@ theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ �
     simp [Der.interp]
     ext
     sorry
-  case fix => sorry
+  case fix ih => 
+    cases der_M
+    next M =>
+    simp only [Der.interp]
+    ext
+    next step γ =>
+      rw [Function.comp_apply, ←μ_fix (M.interp γ)]
+      have ih := ih ?a der_N
+      case a =>
+        constructor
+        exact M
+        constructor
+        exact M
+      rw [←ih]
+      simp [Der.interp]
 
 /-
 @[simp]
