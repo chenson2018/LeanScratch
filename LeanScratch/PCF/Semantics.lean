@@ -17,10 +17,10 @@ infixr:62 " ⤳ " => Ty.arrow
 
 open Term Ty Atom
 
-variable {X : Type}
+variable {X : Type} [DecidableEq X] [Atom X]
 
 /-- definition 2.3, the actual derivations -/
-inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Type
+inductive Der : List (X × Ty) → Term X → Ty → Type
 | zero (Γ)   : Der Γ zero nat
 | succ (Γ M) : Der Γ M nat → Der Γ (succ M) nat
 | pred (Γ M) : Der Γ M nat → Der Γ (pred M) nat
@@ -32,13 +32,93 @@ inductive Der [DecidableEq X] : List (X × Ty) → Term X → Ty → Type
 
 notation:50 Γ " ⊢ " t " ∶" T => Der Γ t T
 
-theorem der_lc [Atom X] [DecidableEq X] {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ) → LC t := by
+omit [Atom X] in
+theorem der_lc {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ) → LC t := by
   intros der
   induction der
   case lam xs _ _ _ _ _ ih => exact LC.lam xs _ (λ x a ↦ ih x a)
   case app ih_l ih_r => exact LC.app ih_l ih_r
   all_goals constructor <;> assumption  
 
+def Der.size {M : Term X} {Γ σ} : (Γ ⊢ M ∶ σ) → ℕ 
+| zero _ => 0
+| succ _ _ a => a.size + 1
+| pred _ _ a => a.size + 1
+| ifzero _ _ _ _ a b c => a.size + b.size + c.size + 1
+| app _ _ _ _ _ a b => a.size + b.size + 1
+| @var _ _ _ _ _ _ _ => Γ.length
+| lam xs a => (a (fresh xs) (fresh_unique xs)).size + 1
+| fix _ _ _ a => a.size + 1
+
+def bot_s : WithBot ℕ → WithBot ℕ
+| ⊥ => ⊥
+| n => n + 1
+
+def bot_p : WithBot ℕ → WithBot ℕ
+| ⊥ => ⊥
+| some n => some (n - 1)
+
+def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
+| (⊥,_,_) => ⊥
+| (0,ret,_) => ret
+| (some (_ + 1),_,ret) => ret
+
+@[simp]
+def Ty.interp : Ty → Type
+| nat => WithBot ℕ
+| arrow σ τ => σ.interp → τ.interp
+
+@[simp]
+def List.interp : List (X × Ty) → Type
+| [] => WithBot Empty
+| (_,σ) :: tl => tl.interp × σ.interp
+
+noncomputable instance TyCPO (ty : Ty) : OmegaCompletePartialOrder ty.interp := by
+  induction ty <;> simp [Ty.interp] <;> infer_instance
+
+noncomputable instance ListCPO (Γ : List (X × Ty)) : OmegaCompletePartialOrder Γ.interp := by
+  induction Γ <;> simp [List.interp] <;> infer_instance
+
+-- TODO: version of this w/o lattice condition??
+#check fixedPoints.lfp_eq_sSup_iterate
+def μ {α} [OmegaCompletePartialOrder α] : (α → α) → α := sorry
+
+def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp → σ.interp := 
+  match Γ, der with
+  | _, zero _ => λ _ => some 0
+  | _, succ _ _ f => bot_s ∘ f.interp
+  | _, pred _ _ f => bot_p ∘ f.interp
+  | _, ifzero _ _ _ _ fa fb fc => bot_cond ∘ (λ Γ ↦ (fa.interp Γ, fb.interp Γ, fc.interp Γ))
+  | _, fix _ _ _ f => μ ∘ f.interp
+  | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.interp γ, fr.interp γ))
+  | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
+        simp only [List.interp]
+        refine if h : x = x' then ?_ else ?_
+        · have eq : σ' = σ := by
+            rw [h] at mem
+            exact Ok.mem_head_eq ok mem
+          rw [eq]
+          exact Prod.snd
+        · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).interp ∘ Prod.fst
+          cases ok
+          assumption
+  | _, @lam _ _ xs Γ' M σ τ ih => by
+      have i := (ih (fresh xs) (fresh_unique xs)).interp
+      exact (λ Γ σ ↦  i (Γ, σ))
+  termination_by 
+    der.size
+  decreasing_by
+    all_goals simp only [List.length, Der.size]; linarith
+
+theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) (step : M ⇓ N) : der_M.interp = der_N.interp := by
+  induction step
+  case zero =>
+    cases der_M
+    cases der_N
+    rfl
+  all_goals sorry
+
+/-
 @[simp]
 noncomputable def Ty.interp : Ty → Σ T, OmegaCompletePartialOrder T
 | nat => ⟨WithBot ℕ, @CompletePartialOrder.toOmegaCompletePartialOrder _ (@WithBot.instCompletePartialOrder ℕ)⟩
@@ -60,10 +140,6 @@ noncomputable def List.interp : List (X × Ty) → Σ T, OmegaCompletePartialOrd
 -- I am astounded this worked so easily
 noncomputable instance (ty : Ty) : OmegaCompletePartialOrder (ty.interp.fst) := ty.interp.snd
 noncomputable instance (Γ : List (X × Ty)) : OmegaCompletePartialOrder (Γ.interp.fst) := Γ.interp.snd
-
-def bot_s : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥
-| n => n + 1
 
 open OmegaCompletePartialOrder
 
@@ -213,16 +289,6 @@ theorem Term.open_size (M : Term X) (k x) : M⟦k ↝ fvar x⟧.size ≤ M.size 
     linarith
   all_goals aesop
 
-def Der.size {M : Term X} {Γ σ} [DecidableEq X]  : (Γ ⊢ M ∶ σ) → ℕ 
-| zero _ => 0
-| succ _ _ a => a.size + 1
-| pred _ _ a => a.size + 1
-| ifzero _ _ _ _ a b c => a.size + b.size + c.size + 1
-| app _ _ _ _ _ a b => a.size + b.size + 1
-| @var _ _ _ _ _ _ _ => Γ.length
-| lam xs a => (a (fresh xs) (fresh_unique xs)).size + 1
-| fix _ _ _ a => a.size + 1
-
 /-
 TODO: I have no idea what this error means!
 
@@ -313,3 +379,4 @@ theorem numeral_intep {n : ℕ} (der : [] ⊢ (n.toTerm : Term X) ∶ nat) : der
 theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) : der_M.interp = der_N.interp := sorry
 
 theorem adequacy {M : Term X} {Γ} {n : ℕ} (der : Γ ⊢ M ∶ nat) : der.interp = (λ _ ↦ some n) → (M ⇓ M) := sorry
+-/
