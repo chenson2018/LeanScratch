@@ -213,6 +213,16 @@ theorem Term.open_size (M : Term X) (k x) : M⟦k ↝ fvar x⟧.size ≤ M.size 
     linarith
   all_goals aesop
 
+def Der.size {M : Term X} {Γ σ} [DecidableEq X]  : (Γ ⊢ M ∶ σ) → ℕ 
+| zero _ => 0
+| succ _ _ a => a.size + 1
+| pred _ _ a => a.size + 1
+| ifzero _ _ _ _ a b c => a.size + b.size + c.size + 1
+| app _ _ _ _ _ a b => a.size + b.size + 1
+| @var _ _ _ _ _ _ _ => Γ.length
+| lam xs a => (a (fresh xs) (fresh_unique xs)).size + 1
+| fix _ _ _ a => a.size + 1
+
 /-
 TODO: I have no idea what this error means!
 
@@ -225,7 +235,7 @@ Cannot derive Der.interp._unary.eq_def
     f a
 -/
 
-def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦σ⟧) := 
+def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ⟦Γ⟧ → ⟦σ⟧ := 
   match Γ, der with
   | _, zero _ => λ _ => some 0
   | _, succ _ _ f => bot_s ∘ f.interp
@@ -245,26 +255,12 @@ def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : (⟦Γ⟧ → ⟦�
           cases ok
           assumption
   | _, @lam _ _ xs Γ' M σ τ ih => by
-      have d := ih (fresh xs) (fresh_unique xs)
-      have i := d.interp
+      have i := (ih (fresh xs) (fresh_unique xs)).interp
       exact (λ Γ σ ↦  i (Γ, σ))
   termination_by 
-    Γ.length + M.size + σ.size
+    der.size
   decreasing_by
-    all_goals simp only [open', Term.size, List.length, Ty.size]
-    linarith
-    linarith
-    linarith
-    linarith
-    linarith
-    -- adding in type size causes this these to fail
-    -- maybe a measure on derivations could combine these?
-    sorry
-    sorry
-    sorry
-    linarith
-    have op := open_size M 0 (fresh xs)
-    linarith
+    all_goals simp only [open', Term.size, List.length, Ty.size, Der.size] <;> linarith
 
 theorem interp_cont {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ωScottContinuous der.interp := by
   induction der <;> simp [Der.interp]
