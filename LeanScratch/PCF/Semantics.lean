@@ -93,6 +93,7 @@ noncomputable instance TyBot (ty : Ty) : Bot ty.interp := by
   induction ty <;> simp [Ty.interp] <;> infer_instance 
 
 -- TODO: version of this w/o lattice condition??
+-- TODO: maybe use Mathlib.Control.LawfulFix??
 #check fixedPoints.lfp_eq_sSup_iterate
 theorem μ_fix {α} (f : α → α) [OmegaCompletePartialOrder α] (hf : ωScottContinuous f) [SupSet α] [Bot α] :
     f (⨆ (n : ℕ), f^[n] ⊥) = ⨆ (n : ℕ), f^[n] ⊥ := sorry
