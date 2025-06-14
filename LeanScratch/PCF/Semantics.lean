@@ -40,6 +40,8 @@ theorem der_lc {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ) → LC t := by
   case app ih_l ih_r => exact LC.app ih_l ih_r
   all_goals constructor <;> assumption  
 
+def der_numeral {n : Term X} (num : Numeral n) {Γ} : Γ ⊢ n ∶ nat := sorry
+
 def Der.size {M : Term X} {Γ σ} : (Γ ⊢ M ∶ σ) → ℕ 
 | zero _ => 0
 | succ _ _ a => a.size + 1
@@ -57,6 +59,10 @@ def bot_s : WithBot ℕ → WithBot ℕ
 def bot_p : WithBot ℕ → WithBot ℕ
 | ⊥ => ⊥
 | some n => some (n - 1)
+
+theorem bot_s_p : bot_p ∘ bot_s = id := by
+  ext
+  case h x => induction x <;> aesop
 
 def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
 | (⊥,_,_) => ⊥
@@ -116,7 +122,63 @@ theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ �
     cases der_M
     cases der_N
     rfl
-  all_goals sorry
+  case succ ih =>
+    cases der_M
+    cases der_N
+    simp [Der.interp]
+    rw [ih]
+  case pred_zero step ih => 
+    cases der_M
+    cases der_N
+    simp [Der.interp]
+    rw [ih]
+    case pred.zero.der_N => constructor
+    simp [Der.interp]
+    rfl
+  case pred_succ ih => 
+    cases der_M
+    simp [Der.interp]
+    rw [ih]
+    case pred.der_N =>
+      constructor
+      exact der_N
+    simp [Der.interp]
+    rw [←Function.comp_assoc, bot_s_p]
+    rfl
+  case ifzero_zero ih ih' => 
+    cases der_M
+    simp [Der.interp]
+    rw [ih]
+    case ifzero.der_N => constructor
+    rw [ih']
+    case ifzero.der_N => assumption
+    simp [Der.interp]
+    rfl    
+  case ifzero_succ ih ih' => 
+    cases der_M
+    simp [Der.interp]
+    rw [ih]
+    case ifzero.der_N => 
+      constructor
+      apply der_numeral
+      assumption
+    simp [Der.interp]
+    unfold bot_cond
+    rw [ih']
+    case ifzero.der_N => assumption
+    -- TODO: should be fine, as bot_s of numeral goes to last branch
+    sorry
+  case β ih ih' => 
+    cases der_M
+    simp [Der.interp]
+    sorry
+  case lam => 
+    cases der_M
+    cases der_N
+    simp [Der.interp]
+    ext
+    sorry
+  case fix => sorry
 
 /-
 @[simp]
