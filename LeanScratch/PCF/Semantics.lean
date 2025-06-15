@@ -3,6 +3,7 @@ import LeanScratch.PCF.Properties
 import LeanScratch.PCF.BigStep
 import LeanScratch.PCF.SmallStep
 import LeanScratch.PCF.FlatCPO
+import LeanScratch.PCF.Continuity
 import LeanScratch.LocallyNameless.STLC.Context
 
 import Mathlib.Order.OmegaCompletePartialOrder
@@ -20,6 +21,7 @@ open Term Ty Atom
 
 variable {X : Type} [DecidableEq X] [Atom X]
 
+-- TODO: implicit args
 /-- definition 2.3, the actual derivations -/
 inductive Der : List (X × Ty) → Term X → Ty → Type
 | zero (Γ)   : Der Γ zero nat
@@ -53,23 +55,6 @@ def Der.size {M : Term X} {Γ σ} : (Γ ⊢ M ∶ σ) → ℕ
 | lam xs a => (a (fresh xs) (fresh_unique xs)).size + 1
 | fix _ _ _ a => a.size + 1
 
-def bot_s : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥
-| n => n + 1
-
-def bot_p : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥
-| some n => some (n - 1)
-
-theorem bot_s_p : bot_p ∘ bot_s = id := by
-  ext
-  case h x => induction x <;> aesop
-
-def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
-| (⊥,_,_) => ⊥
-| (0,ret,_) => ret
-| (some (_ + 1),_,ret) => ret
-
 @[simp]
 def Ty.interp : Ty → Type
 | nat => WithBot ℕ
@@ -91,12 +76,6 @@ noncomputable instance TySupSet (ty : Ty) : SupSet ty.interp := by
 
 noncomputable instance TyBot (ty : Ty) : Bot ty.interp := by
   induction ty <;> simp [Ty.interp] <;> infer_instance 
-
--- TODO: version of this w/o lattice condition??
--- TODO: maybe use Mathlib.Control.LawfulFix??
-#check fixedPoints.lfp_eq_sSup_iterate
-theorem μ_fix {α} (f : α → α) [OmegaCompletePartialOrder α] (hf : ωScottContinuous f) [SupSet α] [Bot α] :
-    f (⨆ (n : ℕ), f^[n] ⊥) = ⨆ (n : ℕ), f^[n] ⊥ := sorry
 
 noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp → σ.interp := 
   match Γ, der with
@@ -125,125 +104,37 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
   decreasing_by
     all_goals simp only [List.length, Der.size]; linarith
 
-theorem bot_s_cont : ωScottContinuous bot_s := by
-  intros D im nonemp dir d' lub
-  simp_all [DirectedOn, IsLUB, IsLeast, upperBounds, lowerBounds, bot_s]
-  obtain ⟨chain, chain_im⟩ := im
-  obtain ⟨bound, low⟩ := lub
-  constructor
-  · intros d mem
-    subst chain_im
-    simp_all only [Set.mem_range, exists_exists_eq_and, forall_exists_index, forall_apply_eq_imp_iff]
-    obtain ⟨i, deq⟩ := mem
-    have leq := bound i
-    rw [deq] at leq
-    induction d <;> simp
-    left; rfl
-    next v =>
-      induction d' <;> simp
-      case bot => 
-        exfalso
-        exact WithBot.coe_nle_bot v leq
-      case coe v' => 
-        rw [(WithBot.coe_le_coe_iff_eq v v').mpr leq]
-  · intros d h
-    subst chain_im
-    simp_all only [Set.mem_range, exists_exists_eq_and, forall_exists_index, forall_apply_eq_imp_iff]
-    sorry
+noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp →𝒄 σ.interp where
+  toFun := der.interp
+  monotone' := sorry
+  map_ωSup' := sorry
 
-theorem bot_p_cont : ωScottContinuous bot_p := sorry
-theorem bot_cond_cont : ωScottContinuous bot_cond := sorry
-
-section cont_lemmas
-
--- TODO: I think most (all?) of these exist already in Mathlib, but I can't get
--- the dependent Sigma versions to work...
-
-variable {α β γ : Type} 
-variable [OmegaCompletePartialOrder α] [OmegaCompletePartialOrder β] [OmegaCompletePartialOrder γ]
-
-theorem π₁_cont : ωScottContinuous (@Prod.fst α β) := by
-  intros D range nonempty dir p lub
-  simp [IsLUB, IsLeast, upperBounds, lowerBounds, DirectedOn, Set.range] at *
-  obtain ⟨a, b⟩ := p
-  obtain ⟨lub_l, lub_r⟩ := lub
-  constructor
-  · intros a' b' mem
-    cases (lub_l a' b' mem)
-    assumption
-  · intros a' h
-    have ⟨res, _⟩ := lub_r a' b ?_
-    exact res
-    intros a'' b'' mem
-    constructor
-    exact h _ mem
-    have ⟨_, res⟩ := lub_l a'' b'' mem
-    exact res
-
-theorem π₂_cont : ωScottContinuous (@Prod.snd α β) := by
-  intros D range nonempty dir p lub
-  simp [IsLUB, IsLeast, upperBounds, lowerBounds, DirectedOn, Set.range] at *
-  obtain ⟨a, b⟩ := p
-  obtain ⟨lub_l, lub_r⟩ := lub
-  constructor
-  · intros b' a' mem
-    cases (lub_l a' b' mem)
-    assumption
-  · intros b' h
-    have ⟨_, res⟩ := lub_r a b' ?_
-    exact res
-    intros a'' b'' mem
-    constructor
-    have ⟨res, _⟩ := lub_l a'' b'' mem
-    exact res
-    exact h _ mem
-
-theorem eval_cont : ωScottContinuous (λ ((f, a) : ((α → β) × α)) ↦ f a) := sorry
-
-theorem curry_cont
-  {f : (γ × α) → β}
-  (hf : ωScottContinuous f)
-  : ωScottContinuous (λ c a ↦ f (c, a))
-  := sorry
-
-theorem prod_cont
-  {f : γ → α} {g : γ → β}
-  (hf : ωScottContinuous f) (hg : ωScottContinuous g)
-  : ωScottContinuous (λ c ↦ (f c, g c)) := by
-  intros D range nonempty dir c lub
-  simp [IsLUB, IsLeast, upperBounds, lowerBounds, DirectedOn, Set.range] at *
-  obtain ⟨lub_l, lub_r⟩ := lub
-  constructor
-  · intros c' mem
-    constructor <;> [apply hf.monotone; apply hg.monotone] <;> apply lub_l mem
-  · intros a b h
-    sorry
-
-end cont_lemmas
-
-theorem interp_cont {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : ωScottContinuous der.interp := by
-  induction der <;> try simp [Der.interp]
+theorem soundness_hom {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) (step : M ⇓ N) : der_M.hom = der_N.hom := by
+  induction step
+  case fix ih =>
+    cases der_M
+    next M =>
+      simp [Der.hom, Der.interp]
+      have Mi := ih (Der.app _ _ _ _ _ M (Der.fix _ _ _ M)) der_N
+      simp [Der.hom, Der.interp] at Mi
+      rw [←Mi]
+      ext
+      next γ =>
+        rw [Function.comp_apply, Function.comp_def]
+        simp
+        have h : ∃ f : σ.interp →𝒄 σ.interp, M.interp γ = ⇑f := sorry
+        have ⟨f, eq⟩ := h
+        rw [eq]
+        -- TODO: this is really close, but not the right ωCPO instance...
+        --#check cpo_fix f
+        sorry
   case zero =>
-    intros _ _ _ _ _ _
-    simp_all only [Set.mem_range, Set.Nonempty.image_const, isLUB_singleton]
-  case succ con =>
-    exact ωScottContinuous.comp bot_s_cont con 
-  case pred con =>
-    exact ωScottContinuous.comp bot_p_cont con 
-  case ifzero con_a con_b con_c =>
-    exact ωScottContinuous.comp bot_cond_cont $ prod_cont con_a (prod_cont con_b con_c)
-  case fix con =>
-    refine ωScottContinuous.comp ?_ con
-    -- TODO: this is awkward to state, because I need f to range over continuous functions???
-    sorry
-  case app fl_con fr_con =>
-    exact ωScottContinuous.comp eval_cont (prod_cont fl_con fr_con)
-  case var => 
-    sorry
-  case lam xs _ _ _ _ _ ih => 
-    apply curry_cont
-    exact ih (fresh xs) (fresh_unique xs)
+    cases der_M
+    cases der_N
+    rfl
+  all_goals  sorry
 
+-- TODO: keeping this for reference, some of the bundling is weird above
 theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) (step : M ⇓ N) : der_M.interp = der_N.interp := by
   induction step
   case zero =>
@@ -310,19 +201,29 @@ theorem soundness {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ �
     cases der_M
     next M =>
     simp only [Der.interp]
-    ext
-    next step γ =>
-      rw [Function.comp_apply, ←μ_fix (M.interp γ)]
-      have ih := ih ?a der_N
-      case a =>
-        constructor
-        exact M
-        constructor
-        exact M
-      rw [←ih]
-      simp [Der.interp]
-      -- TODO: this doesn't quite work with interp_cont
-      sorry
+    rw [←ih]
+    case der_M =>
+      constructor
+      exact M
+      constructor
+      exact M
+    simp [Der.interp]
+    rw [@Function.comp_def]
+    sorry
+--    rw [←cpo_fix _]
+--    ext
+--    next step γ =>
+--      rw [Function.comp_apply, ←μ_fix (M.interp γ)]
+--      have ih := ih ?a der_N
+--      case a =>
+--        constructor
+--        exact M
+--        constructor
+--        exact M
+--      rw [←ih]
+--      simp [Der.interp]
+--      -- TODO: this doesn't quite work with interp_cont
+--      sorry
 
 def Nat.toTerm : ℕ → Term X
 | 0 => Term.zero

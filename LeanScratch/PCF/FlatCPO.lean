@@ -38,9 +38,8 @@ instance le_flat : LE (WithBot α) where
 instance lt_flat : LT (WithBot α) where
   lt a₁ a₂ := a₁ = ⊥ ∧ a₂ ≠ ⊥
 
-theorem bot_le (a : WithBot α) : ⊥ ≤ a := by
-  left
-  rfl
+instance instOrderBot : OrderBot (WithBot α) where
+  bot_le := by aesop
 
 instance preorder_flat : Preorder (WithBot α) where
   le_refl a := by aesop
