@@ -27,6 +27,6 @@ import LeanScratch.PCF.SmallStep
 import LeanScratch.PCF.BigStep
 import LeanScratch.PCF.FlatCPO
 import LeanScratch.PCF.Continuity
---import LeanScratch.PCF.Semantics
+import LeanScratch.PCF.Semantics
 
 --import LeanScratch.LocallyNameless.Models

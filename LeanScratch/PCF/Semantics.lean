@@ -9,6 +9,9 @@ import LeanScratch.LocallyNameless.STLC.Context
 import Mathlib.Order.OmegaCompletePartialOrder
 open OmegaCompletePartialOrder
 
+set_option trace.Meta.synthInstance true in
+#synth OmegaCompletePartialOrder (WithBot ℕ)
+
 /-- definition 2.1 -/
 inductive Ty
 | nat   : Ty
