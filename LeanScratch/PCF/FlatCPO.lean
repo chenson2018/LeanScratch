@@ -4,6 +4,9 @@ import Mathlib.Order.TypeTags
 import Mathlib.Order.SetNotation
 import Mathlib.Order.WithBot
 
+import Mathlib.Order.OmegaCompletePartialOrder
+open OmegaCompletePartialOrder
+
 attribute [-instance] WithBot.le
 attribute [-instance] WithBot.lt
 attribute [-instance] WithBot.preorder
@@ -59,23 +62,6 @@ theorem directed_coe_unique {S : Set (WithBot α)} (dir : DirectedOn WithBot.le_
   subst h₁
   simp_all only [coe_inj]
 
--- TODO: is this inherently classical?? 
-open scoped Classical in
-noncomputable instance instSupSet_flat : SupSet (WithBot α) where
-  sSup s := if h : ∃ v : α, ↑v ∈ s then h.choose else ⊥ 
-
-noncomputable instance instCompletePartialOrder : CompletePartialOrder (WithBot α) where
-  lubOfDirected s dir := by
-    constructor <;> intros a mem <;> simp [sSup] <;> induction a
-    · apply bot_le
-    all_goals split <;> rename_i h
-    · rw [directed_coe_unique dir mem h.choose_spec]
-    · simp_all only [not_exists]
-    · exact mem h.choose_spec
-    · rfl
-    · exact mem h.choose_spec
-    · apply bot_le
-
 theorem coe_nle_bot (a : α) : ¬ a ≤ (⊥ : WithBot α) := by
   simp_all only [le_flat, coe_ne_bot, or_self, not_false_eq_true]
 
@@ -103,5 +89,39 @@ theorem coe_nle (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
       simp_all only [le_flat, le_refl, not_true_eq_false, or_true]
     · left
       exact WithBot.coe_nle_coe a a' h
+
+theorem chain_terminal_val {chain : Chain (WithBot α)} {i : ℕ} {a : α} : 
+    chain i = ↑a → (∀ i', i ≤ i' → chain i' = ↑a) := by
+  intros eq i' leq
+  have mono := chain.monotone leq
+  cases (coe_nle a (chain i')) <;> aesop
+
+/-
+open scoped Classical in
+noncomputable instance instOmegaCompletePartialOrder : OmegaCompletePartialOrder (WithBot α) where
+  ωSup c := if h : ∃ a : α, ↑a ∈ c then h.choose else ⊥
+  le_ωSup c i := sorry
+  ωSup_le c a h := by
+    split
+    case' isTrue ex => have : ∃ i', ex.choose = c i' := ex.choose_spec
+    all_goals induction a <;> aesop
+-/
+
+-- TODO: is this inherently classical?? 
+open scoped Classical in
+noncomputable instance instSupSet_flat : SupSet (WithBot α) where
+  sSup s := if h : ∃ v : α, ↑v ∈ s then h.choose else ⊥ 
+
+noncomputable instance instCompletePartialOrder : CompletePartialOrder (WithBot α) where
+  lubOfDirected s dir := by
+    constructor <;> intros a mem <;> simp [sSup] <;> induction a
+    · apply bot_le
+    all_goals split <;> rename_i h
+    · rw [directed_coe_unique dir mem h.choose_spec]
+    · simp_all only [not_exists]
+    · exact mem h.choose_spec
+    · rfl
+    · exact mem h.choose_spec
+    · apply bot_le
 
 end WithBot
