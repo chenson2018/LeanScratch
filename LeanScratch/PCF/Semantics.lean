@@ -126,20 +126,38 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
   decreasing_by
     all_goals simp only [List.length, Der.size]; linarith
 
+-- TODO: not sure where to place termination_by ...
+-- TODO: maybe make the continuity an argument in order to seperate this?
 noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp →𝒄 σ.interp where
   toFun := 
     match Γ, der with
     -- TODO: I think I have to bundle like this to do the fix case...
-    | _, fix _ _ _ f => by
+    | _, fix Γ _ _ f => by
         refine ?_ ∘ (hom f).toFun
         intros g
         refine ωSup ?_
-        refine fixedPoints.iterateChain ?_ ⊥ ?_
-        refine OrderHom.mk g ?_
+        refine fixedPoints.iterateChain {toFun := g, monotone' := ?_} ⊥ (by apply OrderBot.bot_le)
         -- TODO: need to prove the type and list interpretations are monotone???
         sorry
-        apply OrderBot.bot_le
-    | _, _ => sorry
+    | _, zero _ => λ _ => some 0
+    | _, succ _ _ f => bot_s ∘ f.hom
+    | _, pred _ _ f => bot_p ∘ f.hom
+    | _, ifzero _ _ _ _ fa fb fc => bot_cond ∘ (λ Γ ↦ (fa.hom Γ, fb.hom Γ, fc.hom Γ))
+    | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.hom γ, fr.hom γ))
+    | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
+          simp only [List.interp]
+          refine if h : x = x' then ?_ else ?_
+          · have eq : σ' = σ := by
+              rw [h] at mem
+              exact Ok.mem_head_eq ok mem
+            rw [eq]
+            exact Prod.snd
+          · refine (Der.var ?ok $ Ok.mem_head_neq ok mem h).hom ∘ Prod.fst
+            cases ok
+            assumption
+    | _, @lam _ _ xs Γ' M σ τ ih => by
+        have i := (ih (fresh xs) (fresh_unique xs)).hom
+        exact (λ Γ σ ↦  i (Γ, σ))
   monotone' := sorry
   map_ωSup' := sorry
 
