@@ -91,7 +91,7 @@ noncomputable instance TySupSet (ty : Ty) : SupSet ty.interp := by
    induction ty <;> simp [Ty.interp] <;> infer_instance
 -/
 
-noncomputable instance TyBot (ty : Ty) : Bot ty.interp := by
+noncomputable instance TyOrderBot (ty : Ty) : OrderBot ty.interp := by
   induction ty <;> simp [Ty.interp] <;> infer_instance 
 
 noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp → σ.interp := 
@@ -138,9 +138,7 @@ noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.inte
         refine OrderHom.mk g ?_
         -- TODO: need to prove the type and list interpretations are monotone???
         sorry
-        -- TODO: not picking up the right ⊥ instance?
-        -- apply bot_le
-        sorry
+        apply OrderBot.bot_le
     | _, _ => sorry
   monotone' := sorry
   map_ωSup' := sorry
