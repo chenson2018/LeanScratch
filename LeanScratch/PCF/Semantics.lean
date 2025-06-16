@@ -6,11 +6,23 @@ import LeanScratch.PCF.FlatCPO
 import LeanScratch.PCF.Continuity
 import LeanScratch.LocallyNameless.STLC.Context
 
-import Mathlib.Order.OmegaCompletePartialOrder
 open OmegaCompletePartialOrder
+
+-- check that we ark picking up the right instances
+#synth LE (WithBot ℕ)
+#synth LT (WithBot ℕ)
+#synth OrderBot (WithBot ℕ)
+#synth Preorder (WithBot ℕ)
+#synth PartialOrder (WithBot ℕ)
+
+-- weird that this is added back in...
+attribute [-instance] WithBot.conditionallyCompleteLattice
+attribute [-instance] WithBot.instSupSet
+--#synth SupSet (WithBot ℕ)
 
 set_option trace.Meta.synthInstance true in
 #synth OmegaCompletePartialOrder (WithBot ℕ)
+
 
 /-- definition 2.1 -/
 inductive Ty
@@ -74,8 +86,10 @@ noncomputable instance TyCPO (ty : Ty) : OmegaCompletePartialOrder ty.interp := 
 noncomputable instance ListCPO (Γ : List (X × Ty)) : OmegaCompletePartialOrder Γ.interp := by
   induction Γ <;> simp [List.interp] <;> infer_instance
 
+/-
 noncomputable instance TySupSet (ty : Ty) : SupSet ty.interp := by
    induction ty <;> simp [Ty.interp] <;> infer_instance
+-/
 
 noncomputable instance TyBot (ty : Ty) : Bot ty.interp := by
   induction ty <;> simp [Ty.interp] <;> infer_instance 
@@ -86,7 +100,12 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
   | _, succ _ _ f => bot_s ∘ f.interp
   | _, pred _ _ f => bot_p ∘ f.interp
   | _, ifzero _ _ _ _ fa fb fc => bot_cond ∘ (λ Γ ↦ (fa.interp Γ, fb.interp Γ, fc.interp Γ))
-  | _, fix _ _ _ f => (λ f ↦ ⨆ (n : ℕ), f^[n] ⊥) ∘ f.interp
+  | _, fix _ _ _ f => sorry
+      -- TODO: this is the old version when I was deriving from CPO
+      -- I'd like to use `OmegaCompletePartialOrder.fixedPoints.iterateChain`
+      -- but this also needs a monotone proof?
+      -- how do I seperate out the data now???
+      --exact (λ f ↦ ⨆ (n : ℕ), f^[n] ⊥) ∘ f.interp
   | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.interp γ, fr.interp γ))
   | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
         simp only [List.interp]
@@ -108,29 +127,43 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
     all_goals simp only [List.length, Der.size]; linarith
 
 noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp →𝒄 σ.interp where
-  toFun := der.interp
+  toFun := 
+    match Γ, der with
+    -- TODO: I think I have to bundle like this to do the fix case...
+    | _, fix _ _ _ f => by
+        refine ?_ ∘ (hom f).toFun
+        intros g
+        refine ωSup ?_
+        refine fixedPoints.iterateChain ?_ ⊥ ?_
+        refine OrderHom.mk g ?_
+        -- TODO: need to prove the type and list interpretations are monotone???
+        sorry
+        -- TODO: not picking up the right ⊥ instance?
+        -- apply bot_le
+        sorry
+    | _, _ => sorry
   monotone' := sorry
   map_ωSup' := sorry
 
 theorem soundness_hom {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) (step : M ⇓ N) : der_M.hom = der_N.hom := by
   induction step
-  case fix ih =>
-    cases der_M
-    next M =>
-      simp [Der.hom, Der.interp]
-      have Mi := ih (Der.app _ _ _ _ _ M (Der.fix _ _ _ M)) der_N
-      simp [Der.hom, Der.interp] at Mi
-      rw [←Mi]
-      ext
-      next γ =>
-        rw [Function.comp_apply, Function.comp_def]
-        simp
-        have h : ∃ f : σ.interp →𝒄 σ.interp, M.interp γ = ⇑f := sorry
-        have ⟨f, eq⟩ := h
-        rw [eq]
-        -- TODO: this is really close, but not the right ωCPO instance...
-        --#check cpo_fix f
-        sorry
+  case fix ih => sorry
+    --cases der_M
+    --next M =>
+    --  simp [Der.hom, Der.interp]
+    --  have Mi := ih (Der.app _ _ _ _ _ M (Der.fix _ _ _ M)) der_N
+    --  simp [Der.hom, Der.interp] at Mi
+    --  rw [←Mi]
+    --  ext
+    --  next γ =>
+    --    rw [Function.comp_apply, Function.comp_def]
+    --    simp
+    --    have h : ∃ f : σ.interp →𝒄 σ.interp, M.interp γ = ⇑f := sorry
+    --    have ⟨f, eq⟩ := h
+    --    rw [eq]
+    --    -- TODO: this is really close, but not the right ωCPO instance...
+    --    --#check cpo_fix f
+    --    sorry
   case zero =>
     cases der_M
     cases der_N
