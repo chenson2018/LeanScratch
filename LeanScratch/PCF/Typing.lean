@@ -37,7 +37,9 @@ theorem der_lc {t : Term X} {Γ σ} : (Γ ⊢ t ∶ σ) → LC t := by
   case app ih_l ih_r => exact LC.app ih_l ih_r
   all_goals constructor <;> assumption  
 
-def der_numeral {n : Term X} (num : Numeral n) {Γ} : Γ ⊢ n ∶ nat := sorry
+def der_numeral {n : Term X} {Γ} : Numeral n → Γ ⊢ n ∶ nat
+| Numeral.zero => Der.zero Γ
+| Numeral.succ n' => Der.succ _ _ (der_numeral n')
 
 def Der.size {M : Term X} {Γ σ} : (Γ ⊢ M ∶ σ) → ℕ 
 | zero _ => 0

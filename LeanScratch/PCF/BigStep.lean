@@ -6,7 +6,7 @@ open Term
 variable {X : Type}
 
 /-- definition 2.4 -/
-inductive Numeral : Term X → Prop
+inductive Numeral : Term X → Type
 | zero : Numeral zero
 | succ {m} : Numeral m → Numeral (succ m)
 
