@@ -90,6 +90,9 @@ theorem coe_nle (a : α) (a' : WithBot α) : ¬ a ≤ a' ∨ a = a' := by
     · left
       exact WithBot.coe_nle_coe a a' h
 
+theorem coe_le_lift {a₁ a₂ : α} (f : α → α) : (a₁ : WithBot α) ≤ ↑a₂ → (f a₁ : WithBot α) ≤ ↑(f a₂) := by
+  aesop
+
 theorem chain_terminal_val {chain : Chain (WithBot α)} {i : ℕ} {a : α} : 
     chain i = ↑a → (∀ i', i ≤ i' → chain i' = ↑a) := by
   intros eq i' leq

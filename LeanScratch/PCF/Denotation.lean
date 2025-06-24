@@ -79,11 +79,30 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
   decreasing_by
     all_goals simp only [List.length, Der.size]; linarith
 
--- TODO: not sure where to place termination_by ...
--- TODO: maybe make the continuity an argument in order to seperate this?
 noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.interp →𝒄 σ.interp where
   toFun := der.interp
-  monotone' := sorry
+  monotone' := by
+    induction der <;> simp [Monotone, interp]
+    case succ der ih =>
+      simp [bot_s, lift]
+      intros a b le
+      split
+      apply OrderBot.bot_le
+      have ih' := ih le
+      split
+      next eq _ eq' =>
+        rw [eq, eq'] at ih'
+        exfalso
+        exact WithBot.coe_nle_bot _ ih'
+      next eq _ _ eq'=>
+        rw [eq, eq'] at ih'
+        exact WithBot.coe_le_lift (· + 1) ih'
+    case pred => sorry
+    case ifzero => sorry
+    case fix => sorry
+    case app => sorry
+    case var => sorry
+    case lam => sorry
   map_ωSup' := sorry
 
 theorem soundness_hom {M N: Term X} {Γ σ} (der_M : Γ ⊢ M ∶ σ) (der_N : Γ ⊢ N ∶ σ) (step : M ⇓ N) : der_M.hom = der_N.hom := by
