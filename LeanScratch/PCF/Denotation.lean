@@ -97,7 +97,20 @@ noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.inte
       next eq _ _ eq'=>
         rw [eq, eq'] at ih'
         exact WithBot.coe_le_lift (· + 1) ih'
-    case pred => sorry
+    case pred ih =>
+      simp [bot_p, lift]
+      intros a b le
+      split
+      apply OrderBot.bot_le
+      have ih' := ih le
+      split
+      next eq _ eq' =>
+        rw [eq, eq'] at ih'
+        exfalso
+        exact WithBot.coe_nle_bot _ ih'
+      next eq _ _ eq'=>
+        rw [eq, eq'] at ih'
+        exact WithBot.coe_le_lift (· - 1) ih'
     case ifzero => sorry
     case fix => sorry
     case app => sorry
