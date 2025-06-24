@@ -60,9 +60,26 @@ def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
 | (0,ret,_) => ret
 | (some (_ + 1),_,ret) => ret
 
-theorem bot_cond_mono : Monotone bot_cond := sorry
+theorem bot_cond_mono : Monotone bot_cond := by
+  intros p₁ p₂ le
+  obtain ⟨c₁, i₁, e₁⟩ := p₁
+  obtain ⟨c₂, i₂, e₂⟩ := p₂ 
+  simp [bot_cond]
+  cases le
+  next le_c le =>
+    cases le
+    next le_i le_e =>
+      simp_all
+      cases le_c
+      case inl => simp_all
+      case inr eq₁ =>
+        subst eq₁
+        induction c₁
+        case bot => simp
+        case coe n =>
+          cases n <;> simp <;> assumption
 
-noncomputable def bot_cond_hom : (WithBot ℕ × WithBot ℕ × WithBot ℕ)  →𝒄 WithBot ℕ where
+noncomputable def bot_cond_hom : (WithBot ℕ × WithBot ℕ × WithBot ℕ) →𝒄 WithBot ℕ where
   toFun := bot_cond
   monotone' := bot_cond_mono
   map_ωSup' c := sorry
