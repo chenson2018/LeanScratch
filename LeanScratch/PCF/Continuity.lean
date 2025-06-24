@@ -2,46 +2,67 @@ import Mathlib.Order.OmegaCompletePartialOrder
 import Mathlib.Order.CompletePartialOrder
 import LeanScratch.PCF.FlatCPO
 
-open OmegaCompletePartialOrder
+open OmegaCompletePartialOrder Function
 
 -- TODO: propogate this to the interpretations of types/contexts...
 -- or consider Mathlib.Control.LawfulFix again? (I doubt it, but leving this comment anyway)
 theorem cpo_fix {α} [cpo : CompletePartialOrder α] [OrderBot α] (f : α →𝒄 α) : 
   f (⨆ (n : ℕ), f^[n] ⊥) = ⨆ (n : ℕ), f^[n] ⊥ := fixedPoints.ωSup_iterate_mem_fixedPoint f ⊥ (OrderBot.bot_le (f ⊥))
 
-def bot_s : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥
-| n => n + 1
+def lift {α} (f : α → α) : WithBot α → WithBot α 
+| ⊥ => ⊥ 
+| some a => some (f a)
 
-def bot_p : WithBot ℕ → WithBot ℕ
-| ⊥ => ⊥
-| some n => some (n - 1)
+theorem lift_mono {α} (f : α → α) : Monotone (lift f) := by
+  intros a b le
+  induction a <;> simp [lift]
+  case coe a =>
+    induction b <;> simp [lift]
+    case bot => aesop
+    case coe b =>
+      by_cases h : a = b
+      case pos => aesop
+      case neg =>
+        exfalso
+        exact WithBot.coe_nle_coe _ _ h le
+
+theorem lift_left_inverse {α} {f g : α → α} : LeftInverse f g → LeftInverse (lift f) (lift g) := by
+  simp [LeftInverse]
+  intros inv a
+  induction a <;> simp [lift]
+  aesop
+
+theorem succ_pred_inv : LeftInverse (· - 1) (· + 1) := by simp [LeftInverse]
+
+def bot_s := lift (· + 1)
+def bot_p := lift (· - 1)
 
 theorem bot_s_p : bot_p ∘ bot_s = id := by
-  ext
-  case h x => induction x <;> aesop
+  have inv := lift_left_inverse succ_pred_inv
+  aesop
+
+-- TODO: I think needed for ωSup
+theorem mono_ext {α} {c : Chain (WithBot α)} (mono : WithBot α →o WithBot α) 
+  : (∃ a : α, ↑a ∈ c) ↔ (∃ a : α, ↑a ∈ c.map mono) := sorry
+
+noncomputable def bot_s_hom : WithBot ℕ  →𝒄 WithBot ℕ where
+  toFun := bot_s
+  monotone' := lift_mono (· + 1)
+  map_ωSup' c := sorry
+
+noncomputable def bot_p_hom : WithBot ℕ  →𝒄 WithBot ℕ where
+  toFun := bot_p
+  monotone' := lift_mono (· - 1)
+  map_ωSup' c := sorry
 
 def bot_cond : (WithBot ℕ × WithBot ℕ × WithBot ℕ) → WithBot ℕ
 | (⊥,_,_) => ⊥
 | (0,ret,_) => ret
 | (some (_ + 1),_,ret) => ret
 
-noncomputable def bot_s_hom : WithBot ℕ  →𝒄 WithBot ℕ where
-  toFun := bot_s
-  monotone' := by
-    intros a b le
-    induction a <;> simp [bot_s]
-    case coe a =>
-      induction b <;> simp [bot_s]
-      case bot => aesop
-      case coe b =>
-        by_cases h : a = b
-        case pos => aesop
-        case neg =>
-          exfalso
-          exact WithBot.coe_nle_coe _ _ h le
-  map_ωSup' c := by
-    simp [ωSup]
-    -- TODO: need a lemma to unfold the ⨆ on chains (as a set??) into the WithBot ⨆
-    -- I think this is better than ω continuity
-    sorry    
+theorem bot_cond_mono : Monotone bot_cond := sorry
+
+noncomputable def bot_cond_hom : (WithBot ℕ × WithBot ℕ × WithBot ℕ)  →𝒄 WithBot ℕ where
+  toFun := bot_cond
+  monotone' := bot_cond_mono
+  map_ωSup' c := sorry
