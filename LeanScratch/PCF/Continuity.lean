@@ -9,6 +9,11 @@ open OmegaCompletePartialOrder Function
 theorem cpo_fix {α} [cpo : CompletePartialOrder α] [OrderBot α] (f : α →𝒄 α) : 
   f (⨆ (n : ℕ), f^[n] ⊥) = ⨆ (n : ℕ), f^[n] ⊥ := fixedPoints.ωSup_iterate_mem_fixedPoint f ⊥ (OrderBot.bot_le (f ⊥))
 
+-- if a function maintains ⊥, it is monotone
+theorem map_bot_mono {α} (f : WithBot α → WithBot α) (h : f ⊥ = ⊥) : Monotone f := by
+  intros a b le
+  cases a <;> cases le <;> aesop
+
 def lift {α} (f : α → α) : WithBot α → WithBot α 
 | ⊥ => ⊥ 
 | some a => some (f a)
