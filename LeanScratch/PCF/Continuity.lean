@@ -18,18 +18,7 @@ def lift {α} (f : α → α) : WithBot α → WithBot α
 | ⊥ => ⊥ 
 | some a => some (f a)
 
-theorem lift_mono {α} (f : α → α) : Monotone (lift f) := by
-  intros a b le
-  induction a <;> simp [lift]
-  case coe a =>
-    induction b <;> simp [lift]
-    case bot => aesop
-    case coe b =>
-      by_cases h : a = b
-      case pos => aesop
-      case neg =>
-        exfalso
-        exact WithBot.coe_nle_coe _ _ h le
+theorem lift_mono {α} (f : α → α) : Monotone (lift f) := map_bot_mono (lift f) rfl
 
 theorem lift_left_inverse {α} {f g : α → α} : LeftInverse f g → LeftInverse (lift f) (lift g) := by
   simp [LeftInverse]
