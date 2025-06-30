@@ -61,7 +61,6 @@ noncomputable def Der.interp {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.i
   | _, fix _ _ _ f => (λ g ↦ ωSup $ fixedPoints.iterateChain {toFun := g, monotone' := Ty.interp_mono g} ⊥ (by apply OrderBot.bot_le)) ∘ f.interp
   | _, app _ _ _ _ _ fl fr => (λ (f, a) ↦ f a) ∘ (λ γ ↦ (fl.interp γ, fr.interp γ))
   | (x',σ') ::Γ', @var _ _ _ x _ ok mem => by
-        simp only [List.interp]
         refine if h : x = x' then ?_ else ?_
         · have eq : σ' = σ := by
             rw [h] at mem
@@ -165,7 +164,19 @@ noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.inte
           exact ih_c le 
     case fix => sorry
     case app => sorry
-    case var => sorry
+    case var Γ x σ ok mem => 
+      intros a b le
+      cases mem <;> simp [Der.interp]
+      case head =>
+        cases a
+        cases b
+        simp
+        aesop
+      case tail hd _ _ =>
+        obtain ⟨x', σ⟩ := hd
+        simp
+        -- TODO: this is probably a tactic in data problem...
+        sorry 
     case lam => sorry
   map_ωSup' := sorry
 
