@@ -111,7 +111,58 @@ noncomputable def Der.hom {M : Term X} {Γ σ} (der : Γ ⊢ M ∶ σ) : Γ.inte
       next eq _ _ eq'=>
         rw [eq, eq'] at ih'
         exact WithBot.coe_le_lift (· - 1) ih'
-    case ifzero => sorry
+    case ifzero a b c ih_a ih_b ih_c =>
+      simp [bot_cond]
+      intros x y le
+      split
+      next => apply bot_le
+      next r s eq =>
+        simp at eq
+        obtain ⟨eq_a, eq_b, eq_c⟩ := eq
+        rw [←eq_b]
+        split
+        next r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          have m := ih_a le
+          rw [eq_a, eq_a'] at m
+          exfalso
+          exact WithBot.coe_nle_bot _ m
+        next r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          rw [←eq_b']
+          exact ih_b le 
+        next r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          simp [Monotone] at *
+          rw [←eq_c']
+          -- TODO: double check product instance?
+          sorry
+      next r s eq => 
+        simp at eq
+        obtain ⟨eq_a, eq_b, eq_c⟩ := eq
+        split
+        next r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          have m := ih_a le
+          rw [eq_a, eq_a'] at m
+          exfalso
+          exact WithBot.coe_nle_bot _ m
+        next n _ r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          have m := ih_a le
+          rw [eq_a, eq_a'] at m
+          exfalso
+          exact WithBot.coe_nle_coe (n+1) 0 (by aesop) m
+        next n _ r' s' eq' =>
+          simp at eq'
+          obtain ⟨eq_a', eq_b', eq_c'⟩ := eq'
+          rw [←eq_c, ←eq_c']
+          exact ih_c le 
     case fix => sorry
     case app => sorry
     case var => sorry
