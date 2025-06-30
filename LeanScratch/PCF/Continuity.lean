@@ -39,6 +39,21 @@ theorem bot_s_p : bot_p ∘ bot_s = id := by
 theorem mono_ext {α} {c : Chain (WithBot α)} (mono : WithBot α →o WithBot α) 
   : (∃ a : α, ↑a ∈ c) ↔ (∃ a : α, ↑a ∈ c.map mono) := sorry
 
+theorem ωSup_bot {α} {c : Chain (WithBot α)} (f : WithBot α →o WithBot α) : ωSup c = ⊥ → ωSup (c.map f) = ⊥ := by
+  simp only [ωSup]
+  intros h
+  simp only [dite_eq_right_iff] at h
+  split
+  case isTrue h' =>
+    obtain ⟨a_im, mem⟩ := h'
+    exfalso
+    refine WithBot.coe_ne_bot (h ?_)
+    sorry
+  case isFalse => rfl
+
+theorem ωSup_coe {α} {c : Chain (WithBot α)} (f : WithBot α →o WithBot α) {a : α} : ωSup c = ↑a → ωSup (c.map f) = f ↑a := 
+  sorry
+
 noncomputable def bot_s_hom : WithBot ℕ  →𝒄 WithBot ℕ where
   toFun := bot_s
   monotone' := lift_mono (· + 1)
