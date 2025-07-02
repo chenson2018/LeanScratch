@@ -274,3 +274,20 @@ theorem preservation_confluence {Γ : Ctx X K} {a b c : Term X C} {T} :
   trans
   exact ab
   exact bd
+
+theorem no_fix (Γ : Ctx X K) (σ : Ty K) : ¬ (Γ ⊢ lam (app (bvar 0) (bvar 0) : Term X C) ∶ σ) := by
+  intros der
+  cases der
+  case lam xs A B mem =>
+    have ⟨f, fmem⟩ := atom_fresh_for_set xs
+    have der' := mem _ fmem
+    cases der'
+    case app l r =>
+      cases l
+      cases r
+      next T ok _ _ _ =>
+        cases ok
+        have h : T = A := by aesop
+        have h' : arr T B = A := by aesop
+        rw [h] at h'
+        cases h'
